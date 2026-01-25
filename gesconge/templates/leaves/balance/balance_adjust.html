@@ -1,0 +1,354 @@
+{% extends "leaves/base_leaves.html" %}
+{% load crispy_forms_tags %}
+
+{% block page_title %}Ajustement du Solde{% endblock %}
+{% block page_subtitle %}Ajustez le solde de congés de {{ user.get_full_name }}{% endblock %}
+
+{% block action_buttons %}
+<a href="{% url 'leaves:balance_management' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Retour
+</a>
+{% endblock %}
+
+{% block leaves_content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-edit me-2"></i>Ajuster le Solde
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Informations de l'employé -->
+                <div class="alert alert-info mb-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Employé:</strong> {{ user.get_full_name }}<br>
+                            <strong>Matricule:</strong> {{ user.employee_id|default:"-" }}<br>
+                            <strong>Département:</strong> {{ user.department.name|default:"-" }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Service:</strong> {{ user.service.name|default:"-" }}<br>
+                            <strong>Date d'embauche:</strong> {{ user.date_joined|date:"d/m/Y" }}<br>
+                            <strong>Année en cours:</strong> {{ current_year }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Formulaire d'ajustement -->
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.leave_type|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.year|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.adjustment_type|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.amount|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        {{ form.reason|as_crispy_field }}
+                    </div>
+                    
+                    <!-- Aperçu de l'impact -->
+                    <div class="alert alert-warning" id="impactPreview">
+                        <h6><i class="fas fa-calculator me-2"></i>Impact de l'ajustement</h6>
+                        <p class="mb-0">Sélectionnez un type de congé pour voir l'impact</p>
+                    </div>
+                    
+                    <!-- Historique des ajustements -->
+                    {% if adjustments_history %}
+                    <div class="mt-4">
+                        <h6><i class="fas fa-history me-2"></i>Derniers ajustements</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Ajustement</th>
+                                        <th>Raison</th>
+                                        <th>Par</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for adj in adjustments_history %}
+                                    <tr>
+                                        <td>{{ adj.created_at|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ adj.leave_type.name }}</td>
+                                        <td>
+                                            <span class="badge {% if adj.amount > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                                {{ adj.adjustment_type_display }}: {{ adj.amount }}
+                                            </span>
+                                        </td>
+                                        <td>{{ adj.reason|truncatechars:30 }}</td>
+                                        <td>{{ adj.created_by.get_full_name }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Boutons d'action -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'leaves:balance_management' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-custom-primary">
+                            <i class="fas fa-check me-2"></i>Appliquer l'ajustement
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar avec les soldes actuels -->
+    <div class="col-lg-4">
+        <div class="custom-card mb-4">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-coins me-2"></i>Soldes Actuels ({{ current_year }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if balances %}
+                <div class="list-group">
+                    {% for balance in balances %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ balance.leave_type.name }}</h6>
+                            <span class="badge bg-success">{{ balance.remaining_days }} j</span>
+                        </div>
+                        <div class="row small text-muted">
+                            <div class="col-6">
+                                Acquis: {{ balance.entitled_days }}
+                            </div>
+                            <div class="col-6">
+                                Utilisés: {{ balance.used_days }}
+                            </div>
+                        </div>
+                        {% if balance.carried_over_days > 0 %}
+                        <div class="small text-info">
+                            Reportés: {{ balance.carried_over_days }}
+                        </div>
+                        {% endif %}
+                        {% if balance.pending_days > 0 %}
+                        <div class="small text-warning">
+                            En attente: {{ balance.pending_days }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-coins fa-2x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">Aucun solde disponible</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Statistiques de l'employé -->
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Statistiques
+                </h5>
+            </div>
+            <div class="card-body">
+                {% with total_requests=user.leave_requests.count %}
+                {% with approved_requests=user.leave_requests.filter|status='approved'|length %}
+                {% with pending_requests=user.leave_requests.filter|status='pending'|length %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Demandes totales</span>
+                        <strong>{{ total_requests }}</strong>
+                    </div>
+                    <div class="progress" style="height: 5px;">
+                        <div class="progress-bar bg-primary" style="width: 100%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Approuvées</span>
+                        <strong>{{ approved_requests }}</strong>
+                    </div>
+                    <div class="progress" style="height: 5px;">
+                        <div class="progress-bar bg-success" 
+                             style="width: {% widthratio approved_requests total_requests 100 %}%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>En attente</span>
+                        <strong>{{ pending_requests }}</strong>
+                    </div>
+                    <div class="progress" style="height: 5px;">
+                        <div class="progress-bar bg-warning" 
+                             style="width: {% widthratio pending_requests total_requests 100 %}%"></div>
+                    </div>
+                </div>
+                {% endwith %}
+                {% endwith %}
+                {% endwith %}
+                
+                <!-- Congés récents -->
+                <div class="mt-4">
+                    <h6>Congés récents</h6>
+                    {% with recent_leaves=user.leave_requests.all|slice:"0:3" %}
+                    {% if recent_leaves %}
+                    <div class="list-group list-group-flush">
+                        {% for leave in recent_leaves %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex w-100 justify-content-between">
+                                <small>{{ leave.leave_type.name }}</small>
+                                <small class="text-muted">{{ leave.created_at|date:"d/m" }}</small>
+                            </div>
+                            <small class="text-muted">
+                                {{ leave.start_date|date:"d/m" }} - {{ leave.end_date|date:"d/m" }}
+                                <span class="badge bg-{% if leave.status == 'approved' %}success{% elif leave.status == 'pending' %}warning{% else %}secondary{% endif %} float-end">
+                                    {{ leave.get_status_display|slice:"0:1" }}
+                                </span>
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-0">Aucun congé récent</p>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+$(document).ready(function() {
+    // Mettre à jour l'aperçu de l'impact
+    function updateImpactPreview() {
+        const leaveTypeId = $('#id_leave_type').val();
+        const adjustmentType = $('#id_adjustment_type').val();
+        const amount = parseFloat($('#id_amount').val()) || 0;
+        
+        if (!leaveTypeId) {
+            $('#impactPreview').html(`
+                <h6><i class="fas fa-calculator me-2"></i>Impact de l'ajustement</h6>
+                <p class="mb-0">Sélectionnez un type de congé pour voir l'impact</p>
+            `);
+            return;
+        }
+        
+        // Récupérer les données actuelles via AJAX
+        fetch(`/leaves/api/balance/${leaveTypeId}/?user_id={{ user.id }}&year={{ current_year }}`)
+            .then(response => response.json())
+            .then(data => {
+                let currentValue = 0;
+                let newValue = 0;
+                let action = '';
+                
+                switch(adjustmentType) {
+                    case 'add_entitled':
+                        currentValue = data.entitled_days;
+                        newValue = currentValue + amount;
+                        action = `Ajouter ${amount} jours acquis`;
+                        break;
+                    case 'subtract_entitled':
+                        currentValue = data.entitled_days;
+                        newValue = Math.max(0, currentValue - amount);
+                        action = `Retirer ${amount} jours acquis`;
+                        break;
+                    case 'add_used':
+                        currentValue = data.used_days;
+                        newValue = currentValue + amount;
+                        action = `Ajouter ${amount} jours utilisés`;
+                        break;
+                    case 'subtract_used':
+                        currentValue = data.used_days;
+                        newValue = Math.max(0, currentValue - amount);
+                        action = `Retirer ${amount} jours utilisés`;
+                        break;
+                    case 'set_entitled':
+                        currentValue = data.entitled_days;
+                        newValue = amount;
+                        action = `Définir à ${amount} jours acquis`;
+                        break;
+                    case 'set_used':
+                        currentValue = data.used_days;
+                        newValue = amount;
+                        action = `Définir à ${amount} jours utilisés`;
+                        break;
+                }
+                
+                const change = newValue - currentValue;
+                const changeClass = change > 0 ? 'text-success' : 'text-danger';
+                const changeIcon = change > 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+                
+                $('#impactPreview').html(`
+                    <h6><i class="fas fa-calculator me-2"></i>Impact de l'ajustement</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">Action:</small><br>
+                            <strong>${action}</strong>
+                        </div>
+                        <div class="col-6 text-end">
+                            <small class="text-muted">Changement:</small><br>
+                            <span class="${changeClass}">
+                                <i class="fas ${changeIcon} me-1"></i>
+                                ${change > 0 ? '+' : ''}${change.toFixed(2)} jours
+                            </span>
+                        </div>
+                    </div>
+                    <hr class="my-2">
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">Avant:</small><br>
+                            ${currentValue.toFixed(2)} jours
+                        </div>
+                        <div class="col-6 text-end">
+                            <small class="text-muted">Après:</small><br>
+                            <strong>${newValue.toFixed(2)} jours</strong>
+                        </div>
+                    </div>
+                `);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                $('#impactPreview').html(`
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Erreur lors du calcul de l'impact
+                    </div>
+                `);
+            });
+    }
+    
+    // Écouter les changements
+    $('#id_leave_type, #id_adjustment_type, #id_amount').change(updateImpactPreview);
+    $('#id_amount').on('input', updateImpactPreview);
+    
+    // Initialiser
+    updateImpactPreview();
+});
+</script>
+{% endblock %}

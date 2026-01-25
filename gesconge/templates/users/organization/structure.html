@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Structure Organisationnelle{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-3 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-sitemap text-primary me-2"></i>Structure Organisationnelle
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{% url 'users:division_create' %}" class="btn btn-sm btn-custom-primary">
+                <i class="fas fa-plus me-1"></i>Nouvelle direction
+            </a>
+            <a href="{% url 'users:department_create' %}" class="btn btn-sm btn-custom-outline-primary">
+                <i class="fas fa-plus me-1"></i>Nouveau département
+            </a>
+            <a href="{% url 'users:service_create' %}" class="btn btn-sm btn-custom-outline-primary">
+                <i class="fas fa-plus me-1"></i>Nouveau service
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card custom-card stat-card">
+            <div class="card-body text-center">
+                <h3 class="mb-1">{{ company.name }}</h3>
+                <p class="text-muted mb-0">Entreprise</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card custom-card stat-card">
+            <div class="card-body text-center">
+                <h3 class="mb-1">{{ total_departments }}</h3>
+                <p class="text-muted mb-0">Départements</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card custom-card stat-card">
+            <div class="card-body text-center">
+                <h3 class="mb-1">{{ total_services }}</h3>
+                <p class="text-muted mb-0">Services</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card custom-card stat-card">
+            <div class="card-body text-center">
+                <h3 class="mb-1">{{ total_employees }}</h3>
+                <p class="text-muted mb-0">Employés</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Structure organisationnelle -->
+<div class="card custom-card mb-4">
+    <div class="card-header card-header-custom">
+        <h5 class="mb-0"><i class="fas fa-project-diagram me-2"></i>Organigramme</h5>
+    </div>
+    <div class="card-body">
+        <!-- Entreprise -->
+        <div class="text-center mb-5">
+            <div class="bg-primary text-white d-inline-block px-4 py-3 rounded-circle">
+                <i class="fas fa-building fa-3x"></i>
+            </div>
+            <h3 class="mt-3">{{ company.name }}</h3>
+            <p class="text-muted">Entreprise principale</p>
+        </div>
+        
+        <!-- Directions -->
+        {% if divisions %}
+        <div class="row justify-content-center mb-4">
+            {% for division in divisions %}
+            <div class="col-md-3 mb-3">
+                <div class="card custom-card h-100">
+                    <div class="card-header bg-info text-white text-center">
+                        <h6 class="mb-0">Direction</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <h5>{{ division.name }}</h5>
+                        {% if division.manager %}
+                        <p class="text-muted mb-1">
+                            <i class="fas fa-user-tie me-1"></i>
+                            {{ division.manager.get_full_name }}
+                        </p>
+                        {% endif %}
+                        {% if division.code %}
+                        <span class="badge bg-secondary">{{ division.code }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer text-center">
+                        <small>{{ division.departments.count }} département(s)</small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- Départements -->
+        <div class="row justify-content-center mb-4">
+            {% for department in departments %}
+            <div class="col-md-4 mb-3">
+                <div class="card custom-card h-100">
+                    <div class="card-header bg-success text-white text-center">
+                        <h6 class="mb-0">Département</h6>
+                    </div>
+                    <div class="card-body">
+                        <h5>{{ department.name }}</h5>
+                        {% if department.division %}
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-level-up-alt me-1"></i>
+                            Direction: {{ department.division.name }}
+                        </p>
+                        {% endif %}
+                        {% if department.manager %}
+                        <p class="mb-2">
+                            <i class="fas fa-user-tie me-1 text-primary"></i>
+                            {{ department.manager.get_full_name }}
+                        </p>
+                        {% endif %}
+                        {% if department.code %}
+                        <span class="badge bg-secondary mb-2">{{ department.code }}</span>
+                        {% endif %}
+                        {% if department.description %}
+                        <p class="small text-muted">{{ department.description|truncatechars:100 }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer">
+                        <div class="row">
+                            <div class="col-6">
+                                <small>{{ department.services.count }} service(s)</small>
+                            </div>
+                            <div class="col-6 text-end">
+                                <small>{{ department.members.count }} membre(s)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Services -->
+        <div class="row">
+            {% for department in departments %}
+                {% for service in department.services.all %}
+                <div class="col-md-3 mb-3">
+                    <div class="card custom-card h-100">
+                        <div class="card-header bg-warning text-dark text-center">
+                            <h6 class="mb-0">Service</h6>
+                        </div>
+                        <div class="card-body">
+                            <h6>{{ service.name }}</h6>
+                            <p class="small text-muted mb-2">
+                                <i class="fas fa-layer-group me-1"></i>
+                                {{ department.name }}
+                            </p>
+                            {% if service.manager %}
+                            <p class="small mb-2">
+                                <i class="fas fa-user-tie me-1 text-primary"></i>
+                                {{ service.manager.get_full_name }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer text-center">
+                            <small>{{ service.members.count }} membre(s)</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Liste des directions -->
+<div class="card custom-card">
+    <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Liste des directions</h5>
+        <a href="{% url 'users:division_list' %}" class="btn btn-sm btn-custom-outline-primary">
+            Voir toutes les directions
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-custom mb-0">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Code</th>
+                        <th>Manager</th>
+                        <th>Départements</th>
+                        <th>Créé le</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for division in divisions %}
+                    <tr>
+                        <td>
+                            <strong>{{ division.name }}</strong>
+                        </td>
+                        <td>{{ division.code|default:"-" }}</td>
+                        <td>
+                            {% if division.manager %}
+                            {{ division.manager.get_full_name }}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ division.departments.count }}</span>
+                        </td>
+                        <td>{{ division.created_at|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4">
+                            <i class="fas fa-sitemap fa-2x text-muted mb-3"></i><br>
+                            <p class="text-muted">Aucune direction créée</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

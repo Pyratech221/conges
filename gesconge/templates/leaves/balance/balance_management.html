@@ -1,0 +1,576 @@
+{% extends "leaves/base_leaves.html" %}
+{% load crispy_forms_tags %}
+
+{% block page_title %}Gestion des Soldes{% endblock %}
+{% block page_subtitle %}Gérez les soldes de congés des employés{% endblock %}
+
+{% block action_buttons %}
+<button type="button" class="btn btn-custom-primary" data-bs-toggle="modal" data-bs-target="#bulkAdjustModal">
+    <i class="fas fa-bolt me-2"></i>Ajustement en masse
+</button>
+<a href="{% url 'leaves:export_data' %}?type=leave_balances" class="btn btn-success">
+    <i class="fas fa-download me-2"></i>Exporter
+</a>
+{% endblock %}
+
+{% block leaves_content %}
+<!-- Filtres -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="form-section">
+            <h5 class="form-section-title">
+                <i class="fas fa-filter me-2"></i>Filtres
+            </h5>
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Département</label>
+                    <select name="department" class="form-select" onchange="this.form.submit()">
+                        <option value="">Tous les départements</option>
+                        {% for department in departments %}
+                        <option value="{{ department.id }}" 
+                                {% if request.GET.department == department.id|stringformat:"i" %}selected{% endif %}>
+                            {{ department.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Service</label>
+                    <select name="service" class="form-select" onchange="this.form.submit()">
+                        <option value="">Tous les services</option>
+                        {% for service in services %}
+                        <option value="{{ service.id }}" 
+                                {% if request.GET.service == service.id|stringformat:"i" %}selected{% endif %}>
+                            {{ service.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <a href="{% url 'leaves:balance_management' %}" class="btn btn-secondary w-100">
+                        <i class="fas fa-times me-2"></i>Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Vue d'ensemble -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="custom-card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-card-value">{{ user_balances|length }}</div>
+                        <div class="stat-card-label">Employés</div>
+                    </div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-users text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="custom-card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        {% with total_remaining=0 %}
+                        {% for ub in user_balances %}
+                            {% with total_remaining=total_remaining|add:ub.total_remaining %}
+                            {% endwith %}
+                        {% endfor %}
+                        <div class="stat-card-value">{{ total_remaining|floatformat:0 }}</div>
+                        {% endwith %}
+                        <div class="stat-card-label">Jours restants</div>
+                    </div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-coins text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="custom-card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        {% with total_entitled=0 %}
+                        {% for ub in user_balances %}
+                            {% with total_entitled=total_entitled|add:ub.total_entitled %}
+                            {% endwith %}
+                        {% endfor %}
+                        <div class="stat-card-value">{{ total_entitled|floatformat:0 }}</div>
+                        {% endwith %}
+                        <div class="stat-card-label">Jours acquis</div>
+                    </div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-gift text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="custom-card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        {% with total_used=0 %}
+                        {% for ub in user_balances %}
+                            {% with total_used=total_used|add:ub.total_used %}
+                            {% endwith %}
+                        {% endfor %}
+                        <div class="stat-card-value">{{ total_used|floatformat:0 }}</div>
+                        {% endwith %}
+                        <div class="stat-card-label">Jours utilisés</div>
+                    </div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-plane text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tableau des soldes -->
+<div class="row">
+    <div class="col-12">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table me-2"></i>Soldes des Employés ({{ current_year }})
+                    </h5>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" 
+                                data-bs-toggle="dropdown">
+                            <i class="fas fa-cog me-2"></i>Actions
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#importModal">
+                                    <i class="fas fa-upload me-2"></i>Importer des soldes
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateModal">
+                                    <i class="fas fa-sync me-2"></i>Mettre à jour en masse
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'leaves:report_create' %}?report_type=balance">
+                                    <i class="fas fa-chart-bar me-2"></i>Générer un rapport
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover datatable">
+                        <thead>
+                            <tr>
+                                <th>Employé</th>
+                                <th>Département</th>
+                                <th>Service</th>
+                                <th>Congés payés</th>
+                                <th>Maladie</th>
+                                <th>Autres</th>
+                                <th>Total acquis</th>
+                                <th>Total utilisé</th>
+                                <th>Total restant</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ub in user_balances %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" 
+                                                 style="width: 40px; height: 40px;">
+                                                <i class="fas fa-user text-white"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <strong>{{ ub.user.get_full_name }}</strong>
+                                            <div class="text-muted small">{{ ub.user.employee_id|default:"-" }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {{ ub.user.department.name|default:"-" }}
+                                </td>
+                                <td>
+                                    {{ ub.user.service.name|default:"-" }}
+                                </td>
+                                <td>
+                                    {% with paid_balance=ub.balances|first %}
+                                    {% if paid_balance and paid_balance.leave_type.category == 'paid' %}
+                                    <div>
+                                        <span class="badge bg-primary">{{ paid_balance.remaining_days|floatformat:2 }}</span>
+                                        <div class="text-muted small">
+                                            Acq: {{ paid_balance.entitled_days }} | 
+                                            Util: {{ paid_balance.used_days }}
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% if ub.sick_balance %}
+<div>
+    <span class="badge bg-info">
+        {{ ub.sick_balance.remaining_days|floatformat:2 }}
+    </span>
+</div>
+{% else %}
+<span class="text-muted">-</span>
+{% endif %}
+
+                                </td>
+                                <td>
+                                    {% with other_count=ub.balances|length|add:"-2" %}
+                                    {% if other_count > 0 %}
+                                    <span class="badge bg-secondary">{{ other_count }} type{{ other_count|pluralize:"s" }}</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <strong>{{ ub.total_entitled|floatformat:2 }}</strong>
+                                </td>
+                                <td>
+                                    <strong class="text-warning">{{ ub.total_used|floatformat:2 }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge {% if ub.total_remaining > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ ub.total_remaining|floatformat:2 }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'leaves:balance_adjust' ub.user.id %}" 
+                                           class="btn btn-sm btn-outline-primary"
+                                           data-bs-toggle="tooltip"
+                                           title="Ajuster le solde">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'users:user_detail' ub.user.id %}" 
+                                           class="btn btn-sm btn-outline-info"
+                                           data-bs-toggle="tooltip"
+                                           title="Voir le profil">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'leaves:leave_list' %}?user={{ ub.user.id }}" 
+                                           class="btn btn-sm btn-outline-warning"
+                                           data-bs-toggle="tooltip"
+                                           title="Voir les congés">
+                                            <i class="fas fa-calendar"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="10" class="text-center py-5">
+                                    <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">Aucun employé trouvé</h5>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-active">
+                                <th colspan="3">TOTAUX</th>
+                                <th>
+                                    {% with total_paid_remaining=0 %}
+                                    {% for ub in user_balances %}
+                                        {% for balance in ub.balances %}
+                                            {% if balance.leave_type.category == 'paid' %}
+                                                {% with total_paid_remaining=total_paid_remaining|add:balance.remaining_days %}
+                                                {% endwith %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endfor %}
+                                    <span class="badge bg-primary">{{ total_paid_remaining|floatformat:2 }}</span>
+                                    {% endwith %}
+                                </th>
+                                <th>
+                                    {% with total_sick_remaining=0 %}
+                                    {% for ub in user_balances %}
+                                        {% for balance in ub.balances %}
+                                            {% if balance.leave_type.category == 'sick' %}
+                                                {% with total_sick_remaining=total_sick_remaining|add:balance.remaining_days %}
+                                                {% endwith %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endfor %}
+                                    <span class="badge bg-info">{{ total_sick_remaining|floatformat:2 }}</span>
+                                    {% endwith %}
+                                </th>
+                                <th></th>
+                                <th>
+                                    {% with total_entitled=0 %}
+                                    {% for ub in user_balances %}
+                                        {% with total_entitled=total_entitled|add:ub.total_entitled %}
+                                        {% endwith %}
+                                    {% endfor %}
+                                    <strong>{{ total_entitled|floatformat:2 }}</strong>
+                                    {% endwith %}
+                                </th>
+                                <th>
+                                    {% with total_used=0 %}
+                                    {% for ub in user_balances %}
+                                        {% with total_used=total_used|add:ub.total_used %}
+                                        {% endwith %}
+                                    {% endfor %}
+                                    <strong class="text-warning">{{ total_used|floatformat:2 }}</strong>
+                                    {% endwith %}
+                                </th>
+                                <th>
+                                    {% with total_remaining=0 %}
+                                    {% for ub in user_balances %}
+                                        {% with total_remaining=total_remaining|add:ub.total_remaining %}
+                                        {% endwith %}
+                                    {% endfor %}
+                                    <span class="badge bg-success">{{ total_remaining|floatformat:2 }}</span>
+                                    {% endwith %}
+                                </th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alertes de solde faible -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Alertes de Solde Faible
+                </h5>
+            </div>
+            <div class="card-body">
+                
+                {% if low_balance_users %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Employé</th>
+                                <th>Solde restant</th>
+                                <th>Dernière alerte</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ub in low_balance_users %}
+                            <tr>
+                                <td>{{ ub.user.get_full_name }}</td>
+                                <td>
+                                    <span class="badge bg-danger">{{ ub.total_remaining|floatformat:2 }} jours</span>
+                                </td>
+                                <td>
+                                    {% with last_notification=ub.user.notifications.filter|first %}
+                                    {{ last_notification.created_at|date:"d/m/Y H:i"|default:"-" }}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-warning" 
+                                            onclick="sendReminder({{ ub.user.id }})">
+                                        <i class="fas fa-bell me-1"></i>Rappeler
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                    <p class="text-muted mb-0">Aucun employé avec un solde faible</p>
+                </div>
+                {% endif %}
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<div class="modal fade" id="bulkAdjustModal" tabindex="-1" aria-labelledby="bulkAdjustModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #10536E; color: white;">
+                <h5 class="modal-title" id="bulkAdjustModalLabel">Ajustement en Masse</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'leaves:bulk_balance_adjust' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Type de congé</label>
+                        <select name="leave_type" class="form-select" required>
+                            <option value="">Sélectionnez un type</option>
+                            {% for leave_type in leave_types %}
+                            <option value="{{ leave_type.id }}">{{ leave_type.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Action</label>
+                        <select name="action" class="form-select" required>
+                            <option value="add_entitled">Ajouter des jours acquis</option>
+                            <option value="set_entitled">Définir les jours acquis</option>
+                            <option value="add_carried">Ajouter des jours reportés</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Valeur</label>
+                        <input type="number" name="value" class="form-control" step="0.5" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Employés</label>
+                        <select name="users" class="form-select" multiple size="5">
+                            {% for ub in user_balances %}
+                            <option value="{{ ub.user.id }}">{{ ub.user.get_full_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Maintenez Ctrl pour sélectionner plusieurs employés</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Raison</label>
+                        <textarea name="reason" class="form-control" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-custom-primary">Appliquer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #10536E; color: white;">
+                <h5 class="modal-title" id="importModalLabel">Importer des Soldes</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'leaves:import_data' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="import_type" value="leave_balances">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Téléchargez le modèle d'importation pour voir le format attendu.
+                        <a href="/static/templates/balance_import_template.csv" class="alert-link">
+                            Télécharger le modèle
+                        </a>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fichier CSV</label>
+                        <input type="file" name="data_file" class="form-control" accept=".csv" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="update_existing" class="form-check-input" id="updateExisting">
+                        <label class="form-check-label" for="updateExisting">
+                            Mettre à jour les soldes existants
+                        </label>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        L'importation remplacera les soldes existants si cette option est cochée.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-custom-primary">Importer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+function sendReminder(userId) {
+    if (confirm('Envoyer un rappel de solde faible à cet employé ?')) {
+        fetch(`/leaves/api/reminder/${userId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Rappel envoyé avec succès !');
+            } else {
+                alert('Erreur lors de l\'envoi du rappel.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erreur lors de l\'envoi du rappel.');
+        });
+    }
+}
+
+// Fonction pour récupérer le token CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Initialiser DataTables
+$(document).ready(function() {
+    $('.datatable').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
+        },
+        pageLength: 25,
+        order: [[0, 'asc']],
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+             '<"row"<"col-sm-12"tr>>' +
+             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
+    });
+});
+</script>
+{% endblock %}

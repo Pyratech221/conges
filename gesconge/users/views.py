@@ -134,6 +134,7 @@ def dashboard(request):
     """Tableau de bord principal"""
     user = request.user
     context = {'user': user}
+    team_users = User.objects.none()
     
     # Statistiques selon le rôle
     if user.role in [User.Role.ADMIN, User.Role.HR]:
@@ -178,13 +179,15 @@ def dashboard(request):
     ).count()
     
     context['my_approved_leaves'] = LeaveRequest.objects.filter(
-        user=user,
-        status='approved',
-        start_date__gte=timezone.now().date()
-    ).count()[:5]  # Limiter à 5
+    user=user,
+    status='approved',
+    start_date__gte=timezone.now().date()
+    ).order_by('-start_date')[:5]
     
     # Notifications non lues
-    context['unread_notifications'] = user.notifications.filter(is_read=False).count()[:5]
+    context['unread_notifications'] = user.notifications.filter(
+    is_read=False
+    ).order_by('-created_at')[:5]
     
     # Calendrier des prochains congés de l'équipe (pour managers)
     if user.is_manager:

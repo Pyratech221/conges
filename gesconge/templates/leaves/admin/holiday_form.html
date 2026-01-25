@@ -1,0 +1,329 @@
+{% extends "leaves/base_leaves.html" %}
+{% load crispy_forms_tags %}
+
+{% block page_title %}{% if holiday %}Modifier{% else %}Nouveau{% endif %} Jour Férié{% endblock %}
+{% block page_subtitle %}{% if holiday %}Modifiez les informations du jour férié{% else %}Créez un nouveau jour férié{% endif %}{% endblock %}
+
+{% block action_buttons %}
+<a href="{% url 'leaves:holiday_list' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Retour
+</a>
+{% endblock %}
+
+{% block leaves_content %}
+<div class="row">
+    <div class="col-lg-8">
+        <form method="post" class="form-section">
+            {% csrf_token %}
+            
+            <h5 class="form-section-title mb-4">
+                <i class="fas fa-info-circle me-2"></i>Informations de base
+            </h5>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.name|as_crispy_field }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.date|as_crispy_field }}
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                {{ form.description|as_crispy_field }}
+            </div>
+            
+            <h5 class="form-section-title mt-4 mb-4">
+                <i class="fas fa-cog me-2"></i>Configuration
+            </h5>
+            
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="form-check form-switch">
+                        {{ form.is_recurring }}
+                        <label class="form-check-label" for="{{ form.is_recurring.id_for_label }}">
+                            Récurrent chaque année
+                        </label>
+                    </div>
+                    <small class="form-text text-muted">
+                        Le jour férié se répétera automatiquement chaque année
+                    </small>
+                </div>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="form-check form-switch">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                            Actif
+                        </label>
+                    </div>
+                    <small class="form-text text-muted">
+                        Le jour férié sera pris en compte dans les calculs de congés
+                    </small>
+                </div>
+            </div>
+            
+            <!-- Informations calculées -->
+            <div class="alert alert-info">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Jour de la semaine:</strong><br>
+                        <span id="dayOfWeek">-</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Prochaine occurrence:</strong><br>
+                        <span id="nextOccurrence">-</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Statut:</strong><br>
+                        <span id="statusInfo">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{% url 'leaves:holiday_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Annuler
+                </a>
+                <div>
+                    {% if holiday %}
+                    <button type="submit" class="btn btn-custom-primary">
+                        <i class="fas fa-save me-2"></i>Enregistrer les modifications
+                    </button>
+                    {% else %}
+                    <button type="submit" class="btn btn-custom-primary">
+                        <i class="fas fa-plus me-2"></i>Créer le jour férié
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Sidebar avec prévisualisation et informations -->
+    <div class="col-lg-4">
+        <div class="form-section">
+            <h5 class="form-section-title">
+                <i class="fas fa-eye me-2"></i>Prévisualisation
+            </h5>
+            
+            <!-- Calendrier mini -->
+            <div class="mb-4">
+                <h6>Dans le calendrier</h6>
+                <div id="calendarPreview" class="border rounded p-3 bg-light text-center">
+                    <div class="mb-2">
+                        <span id="previewMonth" class="badge bg-primary">Mois</span>
+                    </div>
+                    <div id="previewDay" class="display-4">1</div>
+                    <div id="previewYear" class="text-muted">2024</div>
+                    <div id="previewName" class="mt-2 fw-bold">Nom du jour férié</div>
+                    <div id="previewWeekday" class="text-muted small">Lundi</div>
+                </div>
+            </div>
+            
+            <!-- Impact -->
+            <div class="mb-4">
+                <h6>Impact sur les congés</h6>
+                <div class="alert alert-warning">
+                    <p class="mb-2"><strong>Ce jour férié affectera :</strong></p>
+                    <ul class="mb-0 ps-3">
+                        <li>Les calculs de jours ouvrables</li>
+                        <li>Les durées des congés</li>
+                        <li>Les soldes disponibles</li>
+                        <li>La planification des équipes</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Jours fériés similaires -->
+            <div class="mb-4">
+                <h6>Jours fériés similaires</h6>
+                <div id="similarHolidays">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <div class="text-muted small">Recherche de jours similaires...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Informations utiles -->
+            <div class="alert alert-light border">
+                <h6><i class="fas fa-lightbulb me-2"></i>Conseils</h6>
+                <ul class="mb-0 ps-3">
+                    <li>Utilisez des noms descriptifs</li>
+                    <li>Marquez comme récurrent pour les fêtes annuelles</li>
+                    <li>Désactivez les jours obsolètes au lieu de les supprimer</li>
+                    <li>Vérifiez les doublons</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+$(document).ready(function() {
+    // Mettre à jour la prévisualisation en temps réel
+    function updatePreview() {
+        const dateInput = $('#id_date').val();
+        const nameInput = $('#id_name').val() || 'Nom du jour férié';
+        const isRecurring = $('#id_is_recurring').is(':checked');
+        
+        if (dateInput) {
+            const date = new Date(dateInput + 'T00:00:00');
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = date.toLocaleDateString('fr-FR', options);
+            const parts = formattedDate.split(' ');
+            
+            // Mettre à jour le calendrier de prévisualisation
+            $('#previewMonth').text(parts[2]); // Mois
+            $('#previewDay').text(parts[1].replace(',', '')); // Jour
+            $('#previewYear').text(parts[3]); // Année
+            $('#previewWeekday').text(parts[0]); // Jour de la semaine
+            $('#previewName').text(nameInput);
+            
+            // Mettre à jour les informations calculées
+            $('#dayOfWeek').text(parts[0]);
+            
+            // Calculer la prochaine occurrence
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let nextDate = new Date(date);
+            if (nextDate < today) {
+                if (isRecurring) {
+                    nextDate.setFullYear(today.getFullYear());
+                    if (nextDate < today) {
+                        nextDate.setFullYear(today.getFullYear() + 1);
+                    }
+                }
+            }
+            
+            const nextFormatted = nextDate.toLocaleDateString('fr-FR', options);
+            $('#nextOccurrence').text(nextFormatted);
+            
+            // Mettre à jour le statut
+            if (date < today) {
+                $('#statusInfo').html('<span class="text-muted">Passé</span>');
+            } else if (date.toDateString() === today.toDateString()) {
+                $('#statusInfo').html('<span class="text-success">Aujourd\'hui</span>');
+            } else {
+                const daysUntil = Math.ceil((date - today) / (1000 * 60 * 60 * 24));
+                $('#statusInfo').html(`<span class="text-primary">Dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}</span>`);
+            }
+        }
+        
+        // Rechercher des jours fériés similaires
+        if (dateInput && nameInput) {
+            searchSimilarHolidays(dateInput, nameInput);
+        }
+    }
+    
+    // Rechercher des jours fériés similaires
+    function searchSimilarHolidays(date, name) {
+        fetch(`/leaves/api/similar-holidays/?date=${date}&name=${encodeURIComponent(name)}`)
+            .then(response => response.json())
+            .then(data => {
+                const container = $('#similarHolidays');
+                
+                if (data.similar.length === 0) {
+                    container.html(`
+                        <div class="text-center py-2">
+                            <i class="fas fa-check-circle text-success mb-2"></i>
+                            <p class="text-muted small mb-0">Aucun jour similaire trouvé</p>
+                        </div>
+                    `);
+                    return;
+                }
+                
+                let html = '<div class="list-group list-group-flush small">';
+                data.similar.forEach(holiday => {
+                    const holidayDate = new Date(holiday.date);
+                    const formattedDate = holidayDate.toLocaleDateString('fr-FR');
+                    
+                    html += `
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>${holiday.name}</strong><br>
+                                    <span class="text-muted">${formattedDate}</span>
+                                </div>
+                                <div>
+                                    <span class="badge bg-${holiday.is_active ? 'success' : 'danger'}">
+                                        ${holiday.is_active ? 'Actif' : 'Inactif'}
+                                    </span>
+                                </div>
+                            </div>
+                            ${holiday.is_recurring ? 
+                                '<div class="text-info"><i class="fas fa-redo me-1"></i>Récurrent</div>' : ''}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                container.html(html);
+            })
+            .catch(error => {
+                console.error('Error searching similar holidays:', error);
+                $('#similarHolidays').html(`
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Erreur lors de la recherche
+                    </div>
+                `);
+            });
+    }
+    
+    // Écouter les changements
+    $('#id_date, #id_name, #id_is_recurring').on('input change', updatePreview);
+    
+    // Initialiser la prévisualisation
+    updatePreview();
+    
+    // Validation de la date
+    $('#id_date').on('change', function() {
+        const selectedDate = new Date($(this).val() + 'T00:00:00');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (selectedDate < today) {
+            if (!confirm('Vous sélectionnez une date passée. Êtes-vous sûr ?')) {
+                $(this).val('');
+            }
+        }
+        
+        // Vérifier les doublons
+        checkDuplicateDate($(this).val());
+    });
+    
+    // Vérifier les doublons de date
+    function checkDuplicateDate(date) {
+        if (!date) return;
+        
+        fetch(`/leaves/api/check-duplicate-holiday/?date=${date}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.exists) {
+                    const warning = `
+                        <div class="alert alert-warning mt-2">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Un jour férié existe déjà à cette date: <strong>${data.holiday_name}</strong>
+                        </div>
+                    `;
+                    
+                    // Ajouter l'avertissement s'il n'existe pas déjà
+                    if (!$('#duplicateWarning').length) {
+                        $('#id_date').after(warning);
+                    }
+                } else {
+                    $('#duplicateWarning').remove();
+                }
+            });
+    }
+});
+</script>
+{% endblock %}

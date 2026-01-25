@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Modifier{% else %}Créer{% endif %} un Département{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-3 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-building text-primary me-2"></i>
+        {% if form.instance.pk %}Modifier{% else %}Créer{% endif %} un Département
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'users:department_list' %}" class="btn btn-custom-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Retour à la liste
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Informations du département
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label required">Nom</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="text-danger small">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Code</label>
+                            {{ form.code }}
+                            {% if form.code.errors %}
+                            <div class="text-danger small">{{ form.code.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label required">Entreprise</label>
+                            {{ form.company }}
+                            {% if form.company.errors %}
+                            <div class="text-danger small">{{ form.company.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Direction</label>
+                            {{ form.division }}
+                            {% if form.division.errors %}
+                            <div class="text-danger small">{{ form.division.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">Optionnel - rattachement à une direction</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Manager</label>
+                            {{ form.manager }}
+                            {% if form.manager.errors %}
+                            <div class="text-danger small">{{ form.manager.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">Le responsable de ce département</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="text-danger small">{{ form.description.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted">Description du département et de ses responsabilités</small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'users:department_list' %}" class="btn btn-custom-outline-primary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        
+                        <button type="submit" class="btn btn-custom-primary">
+                            <i class="fas fa-save me-2"></i>
+                            {% if form.instance.pk %}Mettre à jour{% else %}Créer{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ajouter les classes Bootstrap aux champs
+        const textInputs = document.querySelectorAll('input[type="text"]');
+        textInputs.forEach(input => {
+            input.className = 'form-control';
+        });
+        
+        const selects = document.querySelectorAll('select');
+        selects.forEach(select => {
+            select.className = 'form-select';
+        });
+        
+        const textareas = document.querySelectorAll('textarea');
+        textareas.forEach(textarea => {
+            textarea.className = 'form-control';
+            textarea.rows = 4;
+        });
+        
+        // Filtrer les directions par entreprise
+        const companyField = document.getElementById('id_company');
+        const divisionField = document.getElementById('id_division');
+        
+        if (companyField && divisionField) {
+            companyField.addEventListener('change', function() {
+                const companyId = this.value;
+                if (companyId) {
+                    fetch(`/users/ajax/get-departments/?company_id=${companyId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            divisionField.innerHTML = '<option value="">---------</option>';
+                            // Note: Ici nous devrions avoir un endpoint pour les directions
+                            // Pour l'instant, nous utilisons le même que les départements
+                            data.forEach(item => {
+                                const option = document.createElement('option');
+                                option.value = item.id;
+                                option.textContent = item.name;
+                                divisionField.appendChild(option);
+                            });
+                        });
+                } else {
+                    divisionField.innerHTML = '<option value="">---------</option>';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

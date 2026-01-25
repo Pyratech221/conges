@@ -1,0 +1,260 @@
+{% extends "leaves/base_leaves.html" %}
+{% load humanize %}
+{% load leaves_filters %}
+{% block page_title %}Types de Congés{% endblock %}
+{% block page_subtitle %}Gérez les différents types de congés disponibles{% endblock %}
+
+{% block action_buttons %}
+<a href="{% url 'leaves:leavetype_create' %}" class="btn btn-custom-primary">
+    <i class="fas fa-plus me-2"></i>Nouveau Type
+</a>
+{% endblock %}
+
+{% block leaves_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-tags me-2"></i>Liste des Types de Congés
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if leave_types %}
+                <div class="table-responsive">
+                    <table class="table table-hover datatable">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Catégorie</th>
+                                <th>Code</th>
+                                <th>Validation</th>
+                                <th>Justificatif</th>
+                                <th>Déduction</th>
+                                <th>Limites</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for type in leave_types %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge me-2" style="background-color: {{ type.color }}; color: white;">
+                                            <i class="{{ type.icon|default:'fas fa-calendar' }}"></i>
+                                        </span>
+                                        <div>
+                                            <strong>{{ type.name }}</strong>
+                                            {% if type.description %}
+                                            <div class="text-muted small" style="max-width: 200px;">
+                                                {{ type.description|truncatechars:50 }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {{ type.get_category_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if type.code %}
+                                    <code>{{ type.code }}</code>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if type.requires_approval %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-check-circle me-1"></i>Oui
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-times-circle me-1"></i>Non
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if type.requires_document %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-file me-1"></i>Oui
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Non</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if type.deduct_from_balance %}
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-calculator me-1"></i>Oui
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Non</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="small">
+                                        {% if type.max_days_per_year %}
+                                        <div>Max/an: {{ type.max_days_per_year }}j</div>
+                                        {% endif %}
+                                        {% if type.max_consecutive_days %}
+                                        <div>Max consécutifs: {{ type.max_consecutive_days }}j</div>
+                                        {% endif %}
+                                        {% if type.min_notice_days > 0 %}
+                                        <div>Préavis: {{ type.min_notice_days }}j</div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if type.is_active %}
+                                    <span class="badge bg-success">Actif</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Inactif</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'leaves:leavetype_update' type.pk %}" 
+                                           class="btn btn-sm btn-outline-primary"
+                                           data-bs-toggle="tooltip"
+                                           title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'leaves:leavetype_delete' type.pk %}" 
+                                           class="btn btn-sm btn-outline-danger confirm-delete"
+                                           data-bs-toggle="tooltip"
+                                           title="Supprimer">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Aucun type de congé</h5>
+                    <p class="text-muted">Commencez par créer votre premier type de congé</p>
+                    <a href="{% url 'leaves:leavetype_create' %}" class="btn btn-custom-primary">
+                        <i class="fas fa-plus me-2"></i>Créer un type
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="custom-card h-100">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Répartition par catégorie
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="custom-card h-100">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Statistiques
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="display-6 text-primary">
+                            {{ leave_types|length }}
+                        </div>
+                        <div class="text-muted">Types de congés</div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="display-6 text-success">
+                            {{ leave_types|filter_by_attr:"is_active,True"|length }}
+                        </div>
+                        <div class="text-muted">Types actifs</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="display-6 text-info">
+                            {{ leave_types|filter_by_attr:"requires_approval,True"|length }}
+                        </div>
+                        <div class="text-muted">Nécessitent validation</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="display-6 text-warning">
+                            {{ leave_types|filter_by_attr:"requires_document,True"|length }}
+                        </div>
+                        <div class="text-muted">Nécessitent justificatif</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Graphique des catégories
+    const categoryData = {};
+    {% for type in leave_types %}
+        const category = '{{ type.get_category_display }}';
+        categoryData[category] = (categoryData[category] || 0) + 1;
+    {% endfor %}
+    
+    if (Object.keys(categoryData).length > 0) {
+        const ctx = document.getElementById('categoryChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(categoryData),
+                datasets: [{
+                    data: Object.values(categoryData),
+                    backgroundColor: [
+                        '#10536E', '#28a745', '#ffc107', '#dc3545', 
+                        '#6610f2', '#20c997', '#fd7e14', '#6f42c1'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    // Initialiser DataTables
+    $('.datatable').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
+        },
+        pageLength: 25,
+        order: [[0, 'asc']]
+    });
+    
+    // Confirmation avant suppression
+    $('.confirm-delete').on('click', function(e) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce type de congé ?\n\nNote: Les types utilisés par des demandes existantes ne peuvent pas être supprimés.')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

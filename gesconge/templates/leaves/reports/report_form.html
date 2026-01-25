@@ -1,0 +1,459 @@
+{% extends "leaves/base_leaves.html" %}
+{% load crispy_forms_tags %}
+
+{% block page_title %}{% if report %}Modifier{% else %}Nouveau{% endif %} Rapport{% endblock %}
+{% block page_subtitle %}{% if report %}Modifiez les paramètres du rapport{% else %}Créez un nouveau rapport{% endif %}{% endblock %}
+
+{% block action_buttons %}
+<a href="{% url 'leaves:report_list' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Retour
+</a>
+{% endblock %}
+
+{% block leaves_content %}
+<div class="row">
+    <div class="col-lg-8">
+        <form method="post" id="reportForm" class="form-section">
+            {% csrf_token %}
+            
+            <h5 class="form-section-title mb-4">
+                <i class="fas fa-info-circle me-2"></i>Informations du Rapport
+            </h5>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.report_type|as_crispy_field }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.name|as_crispy_field }}
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                {{ form.description|as_crispy_field }}
+            </div>
+            
+            <h5 class="form-section-title mt-4 mb-4">
+                <i class="fas fa-calendar-alt me-2"></i>Période
+            </h5>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.start_date|as_crispy_field }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.end_date|as_crispy_field }}
+                </div>
+            </div>
+            
+            <h5 class="form-section-title mt-4 mb-4">
+                <i class="fas fa-filter me-2"></i>Filtres
+            </h5>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.departments|as_crispy_field }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.services|as_crispy_field }}
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.users|as_crispy_field }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.leave_types|as_crispy_field }}
+                </div>
+            </div>
+            
+            <h5 class="form-section-title mt-4 mb-4">
+                <i class="fas fa-file-export me-2"></i>Format de Sortie
+            </h5>
+            
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    {{ form.output_format|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Formats disponibles</h6>
+                        <ul class="mb-0 ps-3">
+                            <li><strong>PDF:</strong> Pour l'impression et l'archivage</li>
+                            <li><strong>Excel:</strong> Pour l'analyse et les calculs</li>
+                            <li><strong>CSV:</strong> Pour l'import dans d'autres systèmes</li>
+                            <li><strong>HTML:</strong> Pour la prévisualisation web</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Aperçu des données -->
+            <div class="alert alert-warning" id="dataPreview">
+                <h6><i class="fas fa-chart-bar me-2"></i>Aperçu des données</h6>
+                <p class="mb-0">Remplissez les filtres pour voir un aperçu des données incluses</p>
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{% url 'leaves:report_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Annuler
+                </a>
+                <div>
+                    <button type="submit" name="preview" class="btn btn-info">
+                        <i class="fas fa-eye me-2"></i>Prévisualiser
+                    </button>
+                    <button type="submit" name="generate" class="btn btn-custom-primary">
+                        <i class="fas fa-play me-2"></i>Générer le rapport
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Sidebar avec aide et statistiques -->
+    <div class="col-lg-4">
+        <div class="form-section">
+            <h5 class="form-section-title">
+                <i class="fas fa-question-circle me-2"></i>Aide
+            </h5>
+            
+            <!-- Types de rapports -->
+            <div class="mb-4">
+                <h6>Types de rapports disponibles</h6>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item px-0">
+                        <strong>Résumé des congés</strong>
+                        <div class="text-muted small">
+                            Liste détaillée de toutes les demandes de congé avec filtres
+                        </div>
+                    </div>
+                    <div class="list-group-item px-0">
+                        <strong>Présences</strong>
+                        <div class="text-muted small">
+                            Suivi des ateliers, formations et réunions
+                        </div>
+                    </div>
+                    <div class="list-group-item px-0">
+                        <strong>Soldes</strong>
+                        <div class="text-muted small">
+                            État des soldes de congés par employé
+                        </div>
+                    </div>
+                    <div class="list-group-item px-0">
+                        <strong>Personnalisé</strong>
+                        <div class="text-muted small">
+                            Rapport configurable selon vos besoins
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistiques en temps réel -->
+            <div class="mb-4">
+                <h6>Statistiques actuelles</h6>
+                <div id="liveStats" class="alert alert-light border">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <div class="text-muted small mt-2">Chargement des statistiques...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Conseils -->
+            <div class="alert alert-light border">
+                <h6><i class="fas fa-lightbulb me-2"></i>Conseils</h6>
+                <ul class="mb-0 ps-3">
+                    <li>Utilisez des filtres précis pour des rapports pertinents</li>
+                    <li>Choisissez le format adapté à l'utilisation prévue</li>
+                    <li>Prévoyez les rapports récurrents pour le suivi régulier</li>
+                    <li>Exportez en Excel pour des analyses approfondies</li>
+                </ul>
+            </div>
+            
+            <!-- Rapports fréquents -->
+            <div class="mt-4">
+                <h6>Rapports fréquents</h6>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadPreset('monthly_summary')">
+                        <i class="fas fa-calendar-alt me-2"></i>Résumé mensuel
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="loadPreset('team_leave')">
+                        <i class="fas fa-users me-2"></i>Congés de l'équipe
+                    </button>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="loadPreset('balance_summary')">
+                        <i class="fas fa-coins me-2"></i>Synthèse des soldes
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="loadPreset('attendance_summary')">
+                        <i class="fas fa-clipboard-check me-2"></i>Présences RAF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de prévisualisation -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #10536E; color: white;">
+                <h5 class="modal-title" id="previewModalLabel">Prévisualisation du Rapport</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="previewContent">
+                    <!-- Contenu chargé dynamiquement -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" class="btn btn-custom-primary" onclick="generateReport()">
+                    <i class="fas fa-play me-2"></i>Générer le rapport
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+$(document).ready(function() {
+    // Charger les statistiques en temps réel
+    function loadLiveStats() {
+        fetch('/leaves/api/report-stats/')
+            .then(response => response.json())
+            .then(data => {
+                $('#liveStats').html(`
+                    <div class="row text-center">
+                        <div class="col-6 mb-2">
+                            <div class="text-primary fw-bold">${data.total_leaves}</div>
+                            <div class="text-muted small">Congés</div>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <div class="text-success fw-bold">${data.total_users}</div>
+                            <div class="text-muted small">Employés</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-info fw-bold">${data.total_approved}</div>
+                            <div class="text-muted small">Approuvés</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-warning fw-bold">${data.total_pending}</div>
+                            <div class="text-muted small">En attente</div>
+                        </div>
+                    </div>
+                `);
+            })
+            .catch(error => {
+                console.error('Error loading stats:', error);
+                $('#liveStats').html(`
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Erreur de chargement
+                    </div>
+                `);
+            });
+    }
+    
+    // Charger un préréglage
+    function loadPreset(presetType) {
+        let data = {};
+        
+        switch(presetType) {
+            case 'monthly_summary':
+                data = {
+                    report_type: 'leave_summary',
+                    name: 'Résumé mensuel des congés',
+                    start_date: getFirstDayOfMonth(),
+                    end_date: getLastDayOfMonth(),
+                    output_format: 'pdf'
+                };
+                break;
+            case 'team_leave':
+                data = {
+                    report_type: 'leave_summary',
+                    name: 'Congés de l\'équipe - Mois en cours',
+                    start_date: getFirstDayOfMonth(),
+                    end_date: getLastDayOfMonth(),
+                    output_format: 'excel'
+                };
+                break;
+            case 'balance_summary':
+                data = {
+                    report_type: 'balance',
+                    name: 'Synthèse des soldes',
+                    output_format: 'excel'
+                };
+                break;
+            case 'attendance_summary':
+                data = {
+                    report_type: 'attendance',
+                    name: 'Rapport des présences RAF',
+                    start_date: getFirstDayOfMonth(),
+                    end_date: getLastDayOfMonth(),
+                    output_format: 'pdf'
+                };
+                break;
+        }
+        
+        // Remplir le formulaire
+        Object.keys(data).forEach(key => {
+            const element = $(`#id_${key}`);
+            if (element.length) {
+                element.val(data[key]).trigger('change');
+            }
+        });
+        
+        alert(`Préréglage "${presetType}" chargé. Vérifiez les paramètres avant de générer.`);
+    }
+    
+    // Obtenir le premier jour du mois
+    function getFirstDayOfMonth() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        return `${year}-${month}-01`;
+    }
+    
+    // Obtenir le dernier jour du mois
+    function getLastDayOfMonth() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+        return `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+    }
+    
+    // Mettre à jour l'aperçu des données
+    function updateDataPreview() {
+        const formData = new FormData(document.getElementById('reportForm'));
+        
+        // Vérifier si des filtres sont définis
+        const hasFilters = Array.from(formData.entries()).some(([key, value]) => 
+            ['departments', 'services', 'users', 'leave_types'].includes(key) && value
+        );
+        
+        if (!hasFilters) {
+            $('#dataPreview').html(`
+                <h6><i class="fas fa-chart-bar me-2"></i>Aperçu des données</h6>
+                <p class="mb-0">Remplissez les filtres pour voir un aperçu des données incluses</p>
+            `);
+            return;
+        }
+        
+        // Récupérer un aperçu des données
+        fetch('/leaves/api/report-preview/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            let html = `
+                <h6><i class="fas fa-chart-bar me-2"></i>Aperçu des données</h6>
+                <div class="row small">
+                    <div class="col-6">
+                        <strong>Employés:</strong> ${data.employee_count}
+                    </div>
+                    <div class="col-6">
+                        <strong>Congés:</strong> ${data.leave_count}
+                    </div>
+                    <div class="col-6">
+                        <strong>Période:</strong> ${data.period_days} jours
+                    </div>
+                    <div class="col-6">
+                        <strong>Statut:</strong> ${data.status_summary}
+                    </div>
+                </div>
+            `;
+            
+            if (data.sample_data && data.sample_data.length > 0) {
+                html += `
+                    <hr class="my-2">
+                    <strong>Exemple de données:</strong>
+                    <div class="mt-2 small">
+                        ${data.sample_data.map(item => `
+                            <div class="mb-1">
+                                <i class="fas fa-user me-1"></i>${item.employee} 
+                                - ${item.leave_type} 
+                                <span class="badge bg-${item.status === 'approved' ? 'success' : 'warning'} float-end">
+                                    ${item.days} j
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            $('#dataPreview').html(html);
+        })
+        .catch(error => {
+            console.error('Error updating preview:', error);
+        });
+    }
+    
+    // Gérer la prévisualisation
+    $('#reportForm').on('submit', function(e) {
+        if (e.submitter && e.submitter.name === 'preview') {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch('/leaves/api/report-preview-full/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                $('#previewContent').html(data.html);
+                $('#previewModalLabel').text('Prévisualisation: ' + $('#id_name').val());
+                $('#previewModal').modal('show');
+            })
+            .catch(error => {
+                console.error('Error loading preview:', error);
+                alert('Erreur lors de la prévisualisation');
+            });
+        }
+    });
+    
+    // Générer le rapport
+    window.generateReport = function() {
+        $('#reportForm').append('<input type="hidden" name="generate" value="1">');
+        $('#reportForm').submit();
+    }
+    
+    // Écouter les changements pour mettre à jour l'aperçu
+    $('#id_departments, #id_services, #id_users, #id_leave_types, #id_start_date, #id_end_date').on('change', updateDataPreview);
+    
+    // Initialiser
+    loadLiveStats();
+    updateDataPreview();
+    
+    // Charger les services en fonction du département sélectionné
+    $('#id_departments').on('change', function() {
+        const departmentIds = $(this).val();
+        if (departmentIds && departmentIds.length > 0) {
+            fetch(`/users/api/departments/services/?departments=${departmentIds.join(',')}`)
+                .then(response => response.json())
+                .then(services => {
+                    const serviceSelect = $('#id_services');
+                    serviceSelect.empty();
+                    services.forEach(service => {
+                        serviceSelect.append(`<option value="${service.id}">${service.name}</option>`);
+                    });
+                });
+        }
+    });
+});
+</script>
+{% endblock %}

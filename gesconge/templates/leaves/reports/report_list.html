@@ -1,0 +1,341 @@
+{% extends "leaves/base_leaves.html" %}
+{% load humanize %}
+{% load leaves_filters %}
+{% block page_title %}Rapports{% endblock %}
+{% block page_subtitle %}Consultez et génez les rapports générés{% endblock %}
+
+{% block action_buttons %}
+<a href="{% url 'leaves:report_create' %}" class="btn btn-custom-primary">
+    <i class="fas fa-plus me-2"></i>Nouveau Rapport
+</a>
+<a href="{% url 'leaves:quick_report' %}" class="btn btn-success">
+    <i class="fas fa-bolt me-2"></i>Rapport Rapide
+</a>
+{% endblock %}
+
+{% block leaves_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>Rapports Générés
+                    </h5>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" 
+                                data-bs-toggle="dropdown">
+                            <i class="fas fa-filter me-2"></i>Filtrer
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="?">Tous les rapports</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="?report_type=leave_summary">Résumé des congés</a></li>
+                            <li><a class="dropdown-item" href="?report_type=attendance">Présences</a></li>
+                            <li><a class="dropdown-item" href="?report_type=balance">Soldes</a></li>
+                            <li><a class="dropdown-item" href="?report_type=custom">Personnalisés</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if page_obj %}
+                <div class="table-responsive">
+                    <table class="table table-hover datatable">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Type</th>
+                                <th>Période</th>
+                                <th>Format</th>
+                                <th>Taille</th>
+                                <th>Généré par</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in page_obj %}
+                            <tr>
+                                <td>
+                                    <strong>{{ report.name }}</strong>
+                                    {% if report.description %}
+                                    <div class="text-muted small" style="max-width: 200px;">
+                                        {{ report.description|truncatechars:60 }}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if report.report_type == 'leave_summary' %}primary{% elif report.report_type == 'attendance' %}info{% elif report.report_type == 'balance' %}success{% else %}warning{% endif %}">
+                                        {{ report.get_report_type_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if report.start_date %}
+                                    <div class="small">
+                                        {{ report.start_date|date:"d/m/Y" }}
+                                        <i class="fas fa-arrow-right mx-1"></i>
+                                        {{ report.end_date|date:"d/m/Y" }}
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {{ report.output_format|upper }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if report.file_size %}
+                                    <span class="text-muted">
+                                        {{ report.file_size|filesizeformat }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-2">
+                                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" 
+                                                 style="width: 30px; height: 30px;">
+                                                <i class="fas fa-user text-white small"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="small">{{ report.generated_by.get_full_name }}</div>
+                                            <div class="text-muted smaller">{{ report.generated_by.position|default:"-" }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="small">
+                                        {{ report.generated_at|date:"d/m/Y" }}
+                                    </div>
+                                    <div class="text-muted smaller">
+                                        {{ report.generated_at|date:"H:i" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        {% if report.file %}
+                                        <a href="{% url 'leaves:report_download' report.pk %}" 
+                                           class="btn btn-sm btn-outline-primary"
+                                           data-bs-toggle="tooltip"
+                                           title="Télécharger">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        {% endif %}
+                                        <a href="{% url 'leaves:report_create' %}?duplicate={{ report.pk }}" 
+                                           class="btn btn-sm btn-outline-info"
+                                           data-bs-toggle="tooltip"
+                                           title="Dupliquer">
+                                            <i class="fas fa-copy"></i>
+                                        </a>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-success"
+                                                onclick="regenerateReport({{ report.pk }})"
+                                                data-bs-toggle="tooltip"
+                                                title="Regénérer">
+                                            <i class="fas fa-sync"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% include "leaves/includes/_pagination.html" with page_obj=page_obj %}
+                
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Aucun rapport généré</h5>
+                    <p class="text-muted">Commencez par créer votre premier rapport</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <a href="{% url 'leaves:report_create' %}" class="btn btn-custom-primary">
+                            <i class="fas fa-plus me-2"></i>Créer un rapport
+                        </a>
+                        <a href="{% url 'leaves:quick_report' %}" class="btn btn-success">
+                            <i class="fas fa-bolt me-2"></i>Rapport rapide
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques des rapports -->
+<div class="row mt-4">
+    <div class="col-md-3 mb-3">
+        <div class="custom-card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-card-value">{{ page_obj.paginator.count }}</div>
+                        <div class="stat-card-label">Rapports</div>
+                    </div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-file-alt text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="custom-card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        {% with pdf_count=page_obj|filter_by_attr:"output_format,pdf"|length %}
+                        <div class="stat-card-value">{{ pdf_count }}</div>
+                        {% endwith %}
+                        <div class="stat-card-label">PDF</div>
+                    </div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-file-pdf text-danger"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="custom-card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        {% with excel_count=page_obj|filter_by_attr:"output_format,excel"|length %}
+                        <div class="stat-card-value">{{ excel_count }}</div>
+                        {% endwith %}
+                        <div class="stat-card-label">Excel</div>
+                    </div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-file-excel text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="custom-card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        {% with total_size=0 %}
+                        {% for report in page_obj %}
+                            {% if report.file_size %}
+                                {% with total_size=total_size|add:report.file_size %}
+                                {% endwith %}
+                            {% endif %}
+                        {% endfor %}
+                        <div class="stat-card-value">{{ total_size|filesizeformat }}</div>
+                        {% endwith %}
+                        <div class="stat-card-label">Stockage</div>
+                    </div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-database text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rapports planifiés -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>Rapports Planifiés
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-info-circle me-2"></i>
+                            Fonctionnalité de planification bientôt disponible
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" disabled>
+                            <i class="fas fa-plus me-1"></i>Planifier un rapport
+                        </button>
+                    </div>
+                    <p class="mb-0 mt-2">
+                        La planification automatique de rapports sera disponible dans une prochaine version.
+                        Vous pourrez programmer des rapports récurrents (quotidiens, hebdomadaires, mensuels).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+function regenerateReport(reportId) {
+    if (confirm('Regénérer ce rapport ?\n\nLe rapport existant sera remplacé.')) {
+        fetch(`/leaves/api/reports/${reportId}/regenerate/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Rapport regénéré avec succès !');
+                location.reload();
+            } else {
+                alert('Erreur lors de la regénération: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erreur lors de la regénération.');
+        });
+    }
+}
+
+// Fonction pour récupérer le token CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Initialiser DataTables
+$(document).ready(function() {
+    $('.datatable').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
+        },
+        pageLength: 25,
+        order: [[6, 'desc']], // Trier par date de génération
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+             '<"row"<"col-sm-12"tr>>' +
+             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
+    });
+});
+</script>
+{% endblock %}

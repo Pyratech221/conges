@@ -1,0 +1,376 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Modifier{% else %}Créer{% endif %} un Workflow{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-3 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-tasks text-primary me-2"></i>
+        {% if form.instance.pk %}Modifier{% else %}Créer{% endif %} un Workflow
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'users:workflow_list' %}" class="btn btn-custom-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Retour à la liste
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="card custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-cogs me-2"></i>
+                    Configuration du workflow de validation
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <!-- Section 1: Informations de base -->
+                        <div class="col-12 mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-info-circle me-2 text-primary"></i>Informations de base
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label required">Nom du workflow</label>
+                                    {{ form.name }}
+                                    {% if form.name.errors %}
+                                    <div class="text-danger small">{{ form.name.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label required">Entreprise</label>
+                                    {{ form.company }}
+                                    {% if form.company.errors %}
+                                    <div class="text-danger small">{{ form.company.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                <div class="text-danger small">{{ form.description.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Section 2: Niveaux de validation -->
+                        <div class="col-12 mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-layer-group me-2 text-primary"></i>Niveaux de validation
+                            </h6>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label required">Nombre de niveaux</label>
+                                    {{ form.levels }}
+                                    {% if form.levels.errors %}
+                                    <div class="text-danger small">{{ form.levels.errors }}</div>
+                                    {% endif %}
+                                    <small class="text-muted">1-3 niveaux de validation</small>
+                                </div>
+                            </div>
+                            
+                            <!-- Niveau 1 -->
+                            <div class="card mb-3">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">Niveau 1 - Validation initiale</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label required">Validateur</label>
+                                            {{ form.level1_approver }}
+                                            {% if form.level1_approver.errors %}
+                                            <div class="text-danger small">{{ form.level1_approver.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Utilisateur spécifique</label>
+                                            {{ form.level1_specific_user }}
+                                            {% if form.level1_specific_user.errors %}
+                                            <div class="text-danger small">{{ form.level1_specific_user.errors }}</div>
+                                            {% endif %}
+                                            <small class="text-muted">Si "Utilisateur spécifique" est sélectionné</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Niveau 2 (conditionnel) -->
+                            <div id="level2-section" style="display: none;">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="mb-0">Niveau 2 - Validation secondaire</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label required">Validateur</label>
+                                                {{ form.level2_approver }}
+                                                {% if form.level2_approver.errors %}
+                                                <div class="text-danger small">{{ form.level2_approver.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Utilisateur spécifique</label>
+                                                {{ form.level2_specific_user }}
+                                                {% if form.level2_specific_user.errors %}
+                                                <div class="text-danger small">{{ form.level2_specific_user.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Niveau 3 (conditionnel) -->
+                            <div id="level3-section" style="display: none;">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="mb-0">Niveau 3 - Validation finale</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label required">Validateur</label>
+                                                {{ form.level3_approver }}
+                                                {% if form.level3_approver.errors %}
+                                                <div class="text-danger small">{{ form.level3_approver.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Utilisateur spécifique</label>
+                                                {{ form.level3_specific_user }}
+                                                {% if form.level3_specific_user.errors %}
+                                                <div class="text-danger small">{{ form.level3_specific_user.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Section 3: Options -->
+                        <div class="col-12 mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-sliders-h me-2 text-primary"></i>Options
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        {{ form.require_comments_on_rejection }}
+                                        <label class="form-check-label" for="{{ form.require_comments_on_rejection.id_for_label }}">
+                                            Commentaires obligatoires en cas de rejet
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Approbation automatique après (jours)</label>
+                                    {{ form.auto_approve_after_days }}
+                                    {% if form.auto_approve_after_days.errors %}
+                                    <div class="text-danger small">{{ form.auto_approve_after_days.errors }}</div>
+                                    {% endif %}
+                                    <small class="text-muted">Laisser vide pour désactiver</small>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        {{ form.is_active }}
+                                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                            Workflow actif
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        {{ form.apply_to_all }}
+                                        <label class="form-check-label" for="{{ form.apply_to_all.id_for_label }}">
+                                            Appliquer à toute l'entreprise
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Section 4: Application (conditionnelle) -->
+                        <div class="col-12 mb-4" id="application-section">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-target me-2 text-primary"></i>Application du workflow
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Départements concernés</label>
+                                    {{ form.apply_to_departments }}
+                                    {% if form.apply_to_departments.errors %}
+                                    <div class="text-danger small">{{ form.apply_to_departments.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Services concernés</label>
+                                    {{ form.apply_to_services }}
+                                    {% if form.apply_to_services.errors %}
+                                    <div class="text-danger small">{{ form.apply_to_services.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">Utilisateurs concernés</label>
+                                    {{ form.apply_to_users }}
+                                    {% if form.apply_to_users.errors %}
+                                    <div class="text-danger small">{{ form.apply_to_users.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons d'action -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'users:workflow_list' %}" class="btn btn-custom-outline-primary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        
+                        <button type="submit" class="btn btn-custom-primary">
+                            <i class="fas fa-save me-2"></i>
+                            {% if form.instance.pk %}Mettre à jour{% else %}Créer{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ajouter les classes Bootstrap aux champs
+        const textInputs = document.querySelectorAll('input[type="text"], input[type="number"]');
+        textInputs.forEach(input => {
+            input.className = 'form-control';
+        });
+        
+        const selects = document.querySelectorAll('select');
+        selects.forEach(select => {
+            select.className = 'form-select';
+        });
+        
+        const textareas = document.querySelectorAll('textarea');
+        textareas.forEach(textarea => {
+            textarea.className = 'form-control';
+            textarea.rows = 3;
+        });
+        
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.className = 'form-check-input';
+        });
+        
+        // Gérer l'affichage des niveaux de validation
+        const levelsField = document.getElementById('id_levels');
+        const level2Section = document.getElementById('level2-section');
+        const level3Section = document.getElementById('level3-section');
+        const applicationSection = document.getElementById('application-section');
+        const applyToAllField = document.getElementById('id_apply_to_all');
+        
+        function updateLevelsDisplay() {
+            const levels = parseInt(levelsField.value) || 1;
+            
+            // Afficher/masquer les sections
+            level2Section.style.display = levels >= 2 ? 'block' : 'none';
+            level3Section.style.display = levels >= 3 ? 'block' : 'none';
+            
+            // Gérer les champs requis
+            const level2Approver = document.getElementById('id_level2_approver');
+            const level3Approver = document.getElementById('id_level3_approver');
+            
+            if (levels >= 2) {
+                level2Approver.required = true;
+            } else {
+                level2Approver.required = false;
+            }
+            
+            if (levels >= 3) {
+                level3Approver.required = true;
+            } else {
+                level3Approver.required = false;
+            }
+        }
+        
+        // Gérer l'affichage de la section d'application
+        function updateApplicationDisplay() {
+            if (applyToAllField.checked) {
+                applicationSection.style.display = 'none';
+            } else {
+                applicationSection.style.display = 'block';
+            }
+        }
+        
+        // Événements
+        levelsField.addEventListener('change', updateLevelsDisplay);
+        applyToAllField.addEventListener('change', updateApplicationDisplay);
+        
+        // Initialiser l'affichage
+        updateLevelsDisplay();
+        updateApplicationDisplay();
+        
+        // Désactiver le champ entreprise si l'utilisateur n'est pas admin
+        {% if not user.is_admin %}
+        const companyField = document.getElementById('id_company');
+        if (companyField) {
+            companyField.disabled = true;
+            companyField.style.backgroundColor = '#e9ecef';
+        }
+        {% endif %}
+        
+        // Filtrer les départements et services par entreprise
+        const companyField = document.getElementById('id_company');
+        const departmentField = document.getElementById('id_apply_to_departments');
+        const serviceField = document.getElementById('id_apply_to_services');
+        const userField = document.getElementById('id_apply_to_users');
+        
+        if (companyField) {
+            companyField.addEventListener('change', function() {
+                const companyId = this.value;
+                if (companyId) {
+                    // Filtrer les départements
+                    fetch(`/users/ajax/get-departments/?company_id=${companyId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            departmentField.innerHTML = '';
+                            data.forEach(dept => {
+                                const option = document.createElement('option');
+                                option.value = dept.id;
+                                option.textContent = dept.name;
+                                departmentField.appendChild(option);
+                            });
+                        });
+                    
+                    // Note: Pour les services et utilisateurs, il faudrait des endpoints similaires
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

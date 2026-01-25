@@ -544,6 +544,15 @@ def approval_action_view(request, pk):
 @manager_or_above_required
 def bulk_approval_view(request):
     """Validation en masse"""
+    # Récupérer toutes les demandes en attente pour ce validateur
+    available_requests = LeaveRequest.objects.filter(
+        status='pending',
+        approvals__approver=request.user,
+        approvals__status='pending'
+    ).distinct().select_related('user', 'leave_type')
+    
+    total_pending = available_requests.count()
+    
     if request.method == 'POST':
         form = BulkLeaveApprovalForm(request.POST, approver=request.user)
         if form.is_valid():
@@ -551,6 +560,7 @@ def bulk_approval_view(request):
             action = form.cleaned_data['action']
             comments = form.cleaned_data['comments']
             
+            processed_count = 0
             for leave in leave_requests:
                 # Créer ou récupérer l'approbation
                 approval, created = LeaveApproval.objects.get_or_create(
@@ -596,25 +606,21 @@ def bulk_approval_view(request):
                     'comments': comments
                 })
                 
-                # Log de l'activité
-                ActivityLog.log_action(
-                    user=request.user,
-                    action_type=action,
-                    module=ActivityLog.Module.APPROVAL,
-                    description=f"Validation en masse: {action} du congé {leave.leave_type.name} de {leave.user.get_full_name()}",
-                    content_object=leave,
-                    request=request
-                )
+                processed_count += 1
             
-            messages.success(request, _(f"{leave_requests.count()} demandes traitées avec succès !"))
+            messages.success(request, _(f"{processed_count} demande(s) traitée(s) avec succès !"))
             return redirect('leaves:approval_list')
     else:
         form = BulkLeaveApprovalForm(approver=request.user)
     
-    return render(request, 'leaves/approval/bulk_approval.html', {'form': form})
-
-
-# ==================== Vues de Calendrier ====================
+    context = {
+        'form': form,
+        'available_requests': available_requests,
+        'total_pending': total_pending,
+    }
+    
+    return render(request, 'leaves/approval/bulk_approval.html', context)
+#==================== Vues de Calendrier ====================
 @login_required
 def calendar_view(request):
     """Calendrier des congés"""
@@ -712,27 +718,38 @@ def calendar_events_json(request):
 
 
 # ==================== Vues de Solde ====================
+from django.db.models import Sum
+from datetime import date
+
 @login_required
 def balance_view(request):
     """Vue du solde de congés"""
     current_year = date.today().year
-    balances = LeaveBalance.objects.filter(
-        user=request.user,
-        year=current_year
-    ).select_related('leave_type')
-    
-    # Récupérer l'historique des années
-    years = LeaveBalance.objects.filter(
-        user=request.user
-    ).values_list('year', flat=True).distinct().order_by('-year')
-    
+
+    balances = (
+        LeaveBalance.objects
+        .filter(user=request.user, year=current_year)
+        .select_related('leave_type')
+    )
+
+    years = (
+        LeaveBalance.objects
+        .filter(user=request.user)
+        .values_list('year', flat=True)
+        .distinct()
+        .order_by('-year')
+    )
+
+    # Calcul Python pour les propriétés
+    total_remaining = sum(b.remaining_days for b in balances)
+
     context = {
         'balances': balances,
         'current_year': current_year,
         'years': years,
-        'total_remaining': sum(b.remaining_days for b in balances),
+        'total_remaining': total_remaining,
     }
-    
+
     return render(request, 'leaves/balance/balance.html', context)
 
 
@@ -753,16 +770,24 @@ def balance_management_view(request):
     # Calculer les totaux
     current_year = date.today().year
     user_balances = []
-    
+    low_balance_users = [
+    ub for ub in user_balances if ub["total_remaining"] < 5
+    ]
     for user in users:
         balances = LeaveBalance.objects.filter(user=user, year=current_year)
+
+        paid_balance = balances.filter(leave_type__category='paid').first()
+        sick_balance = balances.filter(leave_type__category='sick').first()
+
         total_entitled = sum(b.entitled_days for b in balances)
         total_used = sum(b.used_days for b in balances)
         total_remaining = total_entitled - total_used
-        
+
         user_balances.append({
             'user': user,
             'balances': balances,
+            'paid_balance': paid_balance,
+            'sick_balance': sick_balance,
             'total_entitled': total_entitled,
             'total_used': total_used,
             'total_remaining': total_remaining,
@@ -770,6 +795,7 @@ def balance_management_view(request):
     
     context = {
         'user_balances': user_balances,
+        'low_balance_users': low_balance_users,
         'current_year': current_year,
         'departments': Department.objects.filter(company=request.user.company),
         'services': Service.objects.filter(department__company=request.user.company),
@@ -879,6 +905,68 @@ def balance_adjust_view(request, user_id):
 
 
 
+@hr_or_admin_required
+def bulk_balance_adjust_view(request):
+    """Ajustement de solde en masse (RH/Admin)"""
+    current_year = date.today().year
+    users = User.objects.filter(
+        company=request.user.company,
+        is_active=True
+    )
+
+    if request.method == "POST":
+        leave_type_id = request.POST.get("leave_type")
+        year = int(request.POST.get("year", current_year))
+        adjustment_type = request.POST.get("adjustment_type")
+        amount = float(request.POST.get("amount", 0))
+        reason = request.POST.get("reason", "")
+
+        leave_type = get_object_or_404(
+            LeaveType,
+            id=leave_type_id,
+            company=request.user.company
+        )
+
+        for user in users:
+            balance, created = LeaveBalance.objects.get_or_create(
+                user=user,
+                leave_type=leave_type,
+                year=year,
+                defaults={
+                    "entitled_days": 0,
+                    "used_days": 0,
+                    "carried_over_days": 0,
+                }
+            )
+
+            if adjustment_type == "add_entitled":
+                balance.entitled_days += amount
+            elif adjustment_type == "subtract_entitled":
+                balance.entitled_days = max(0, balance.entitled_days - amount)
+            elif adjustment_type == "set_entitled":
+                balance.entitled_days = amount
+
+            balance.save()
+
+        messages.success(
+            request,
+            "Ajustement en masse effectué avec succès."
+        )
+        return redirect("leaves:balance_management")
+
+    context = {
+        "current_year": current_year,
+        "leave_types": LeaveType.objects.filter(
+            company=request.user.company,
+            is_active=True
+        ),
+    }
+
+    return render(
+        request,
+        "leaves/balance/bulk_balance_adjust.html",
+        context
+    )
 
 
 
@@ -898,6 +986,10 @@ def balance_adjust_view(request, user_id):
 def report_list_view(request):
     """Liste des rapports générés"""
     reports = Report.objects.filter(company=request.user.company).order_by('-generated_at')
+
+    pdf_count = reports.filter(output_format='pdf').count()
+    excel_count = reports.filter(output_format='excel').count()
+    total_size = sum(r.file_size or 0 for r in reports)
     
     # Pagination
     paginator = Paginator(reports, 15)
@@ -905,7 +997,10 @@ def report_list_view(request):
     page_obj = paginator.get_page(page_number)
     
     context = {
-        'page_obj': page_obj,
+    'page_obj': page_obj,
+    'pdf_count': pdf_count,
+    'excel_count': excel_count,
+    'total_size': total_size,
     }
     
     return render(request, 'leaves/reports/report_list.html', context)
@@ -1217,20 +1312,64 @@ def holiday_list_view(request):
     ).order_by('date')
     
     # Filtrer par année
-    year = request.GET.get('year', current_year)
+    try:
+        year = int(request.GET.get('year', current_year))
+    except (ValueError, TypeError):
+        year = current_year
     if year:
         holidays = holidays.filter(
             models.Q(date__year=year) | models.Q(is_recurring=True)
         )
+        
+    try:
+        selected_year = int(request.GET.get('year', current_year))
+    except (ValueError, TypeError):
+        selected_year = current_year    
     
     context = {
         'holidays': holidays,
         'current_year': current_year,
         'selected_year': int(year) if year else current_year,
         'years': range(current_year - 5, current_year + 6),
+        'months': range(1, 13),
+        'selected_year': selected_year,
     }
     
     return render(request, 'leaves/admin/holiday_list.html', context)
+
+
+@hr_or_admin_required
+def holiday_duplicate(request, pk):
+    holiday = get_object_or_404(
+        Holiday,
+        pk=pk,
+        company=request.user.company
+    )
+
+    if request.method == "POST":
+        try:
+            new_year = int(request.POST.get("new_year"))
+        except (TypeError, ValueError):
+            messages.error(request, "Année invalide")
+            return redirect("leaves:holiday_list")
+
+        new_date = holiday.date.replace(year=new_year)
+
+        Holiday.objects.create(
+            company=holiday.company,
+            name=holiday.name,
+            date=new_date,
+            description=holiday.description,
+            is_recurring=holiday.is_recurring,
+            is_active=holiday.is_active,
+        )
+
+        messages.success(
+            request,
+            f'Jour férié "{holiday.name}" dupliqué pour {new_year}'
+        )
+
+    return redirect("leaves:holiday_list")
 
 
 @hr_or_admin_required
@@ -1464,24 +1603,42 @@ def export_data_view(request):
 @login_required
 def notification_list_view(request):
     """Liste des notifications"""
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    
-    # Marquer comme lues si visitées
-    unread_notifications = notifications.filter(is_read=False)
-    if unread_notifications.exists():
-        unread_notifications.update(is_read=True, read_at=timezone.now())
-    
+
+    base_qs = Notification.objects.filter(
+        user=request.user
+    ).order_by('-created_at')
+
+    # Stats (AVANT pagination)
+    unread_count = base_qs.filter(is_read=False).count()
+    read_count = base_qs.filter(is_read=True).count()
+    important_count = base_qs.filter(priority=2).count()
+    urgent_count = base_qs.filter(priority=3).count()
+
+    # Marquer comme lues (optionnel : à discuter UX)
+    if unread_count > 0:
+        base_qs.filter(is_read=False).update(
+            is_read=True,
+            read_at=timezone.now()
+        )
+
     # Pagination
-    paginator = Paginator(notifications, 20)
+    paginator = Paginator(base_qs, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     context = {
         'page_obj': page_obj,
-        'unread_count': unread_notifications.count(),
+        'unread_count': unread_count,
+        'read_count': read_count,
+        'important_count': important_count,
+        'urgent_count': urgent_count,
     }
-    
-    return render(request, 'leaves/notifications/notification_list.html', context)
+
+    return render(
+        request,
+        'leaves/notifications/notification_list.html',
+        context
+    )
 
 
 @login_required

@@ -1,0 +1,171 @@
+{% extends "leaves/base_leaves.html" %}
+
+{% block page_title %}Supprimer le Type de Congé{% endblock %}
+{% block page_subtitle %}Confirmez la suppression du type de congé "{{ leave_type.name }}"{% endblock %}
+
+{% block action_buttons %}
+<a href="{% url 'leaves:leavetype_list' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Retour
+</a>
+{% endblock %}
+
+{% block leaves_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmation de suppression
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Aperçu du type à supprimer -->
+                <div class="alert alert-danger mb-4">
+                    <div class="d-flex align-items-center">
+                        <span class="badge me-3" style="background-color: {{ leave_type.color }}; color: white; font-size: 1.5rem;">
+                            <i class="{{ leave_type.icon|default:'fas fa-calendar' }}"></i>
+                        </span>
+                        <div>
+                            <h5 class="alert-heading mb-1">{{ leave_type.name }}</h5>
+                            <p class="mb-0">
+                                {{ leave_type.get_category_display }}
+                                {% if leave_type.code %} - Code: {{ leave_type.code }}{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Vérifications -->
+                <div class="mb-4">
+                    <h6>Vérifications préalables</h6>
+                    
+                    {% with usage_count=leave_type.requests.count %}
+                    <div class="alert {% if usage_count > 0 %}alert-warning{% else %}alert-success{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-{% if usage_count > 0 %}exclamation-triangle{% else %}check-circle{% endif %} me-2"></i>
+                                Demandes associées
+                            </div>
+                            <span class="badge bg-{% if usage_count > 0 %}warning{% else %}success{% endif %}">
+                                {{ usage_count }} demande{{ usage_count|pluralize:"s" }}
+                            </span>
+                        </div>
+                        {% if usage_count > 0 %}
+                        <p class="mb-0 mt-2 small">
+                            Ce type de congé est utilisé par {{ usage_count }} demande{{ usage_count|pluralize:"s" }} existante{{ usage_count|pluralize:"s" }}.
+                            La suppression est impossible.
+                        </p>
+                        {% endif %}
+                    </div>
+                    {% endwith %}
+                    
+                    {% with balance_count=leave_type.balances.count %}
+                    <div class="alert {% if balance_count > 0 %}alert-warning{% else %}alert-success{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-{% if balance_count > 0 %}exclamation-triangle{% else %}check-circle{% endif %} me-2"></i>
+                                Soldes associés
+                            </div>
+                            <span class="badge bg-{% if balance_count > 0 %}warning{% else %}success{% endif %}">
+                                {{ balance_count }} solde{{ balance_count|pluralize:"s" }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endwith %}
+                </div>
+                
+                <!-- Conséquences -->
+                <div class="alert alert-info mb-4">
+                    <h6><i class="fas fa-exclamation-circle me-2"></i>Conséquences de la suppression</h6>
+                    <ul class="mb-0">
+                        <li>Le type de congé sera définitivement supprimé</li>
+                        <li>Toutes les références seront perdues</li>
+                        <li>Cette action est irréversible</li>
+                        <li>Les demandes existantes ne pourront plus référencer ce type</li>
+                    </ul>
+                </div>
+                
+                <!-- Alternatives -->
+                <div class="alert alert-light border mb-4">
+                    <h6><i class="fas fa-lightbulb me-2"></i>Alternatives recommandées</h6>
+                    <p>Au lieu de supprimer, vous pouvez :</p>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'leaves:leavetype_update' leave_type.pk %}" class="btn btn-outline-primary">
+                            <i class="fas fa-edit me-2"></i>Modifier le type
+                        </a>
+                        <button type="button" class="btn btn-outline-warning" onclick="deactivateType()">
+                            <i class="fas fa-toggle-off me-2"></i>Désactiver le type
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Boutons d'action -->
+                {% if leave_type.requests.count > 0 %}
+                <div class="d-grid">
+                    <a href="{% url 'leaves:leavetype_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Retour à la liste
+                    </a>
+                </div>
+                {% else %}
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'leaves:leavetype_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Confirmer la suppression
+                        </button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+function deactivateType() {
+    if (confirm('Désactiver ce type de congé à la place ?\n\nIl sera masqué mais conservé pour l\'historique.')) {
+        fetch(`{% url 'leaves:leavetype_deactivate' leave_type.pk %}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Type de congé désactivé avec succès !');
+                window.location.href = '{% url 'leaves:leavetype_list' %}';
+            } else {
+                alert('Erreur lors de la désactivation.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erreur lors de la désactivation.');
+        });
+    }
+}
+
+// Fonction pour récupérer le token CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

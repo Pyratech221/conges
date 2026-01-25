@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report.name }} - {{ company.name }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #10536E;
+            padding-bottom: 20px;
+        }
+        
+        .company-logo {
+            max-height: 80px;
+            margin-bottom: 10px;
+        }
+        
+        .report-title {
+            color: #10536E;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .report-subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .report-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .info-item {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #10536E;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 14px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        
+        th {
+            background-color: #10536E;
+            color: white;
+            font-weight: bold;
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        
+        td {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .summary {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #e9f7fe;
+            border-radius: 5px;
+            border-left: 4px solid #10536E;
+        }
+        
+        .summary-title {
+            color: #10536E;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .summary-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #10536E;
+            margin-bottom: 5px;
+        }
+        
+        .summary-label {
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 10px;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 60px;
+        }
+        
+        .badge-approved {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .badge-pending {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .badge-rejected {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .badge-draft {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .chart-container {
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #10536E;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <!-- En-tête -->
+    <div class="header">
+        {% if company.logo %}
+        <img src="{{ company.logo.url }}" alt="{{ company.name }}" class="company-logo">
+        {% endif %}
+        
+        <h1 class="report-title">{{ report.name }}</h1>
+        
+        {% if report.description %}
+        <div class="report-subtitle">{{ report.description }}</div>
+        {% endif %}
+        
+        <div class="report-info">
+            <div class="info-item">
+                <span class="info-label">Généré le</span>
+                <span class="info-value">{{ generated_at|date:"d/m/Y H:i" }}</span>
+            </div>
+            
+            {% if report.start_date %}
+            <div class="info-item">
+                <span class="info-label">Période</span>
+                <span class="info-value">
+                    {{ report.start_date|date:"d/m/Y" }} - {{ report.end_date|date:"d/m/Y" }}
+                </span>
+            </div>
+            {% endif %}
+            
+            <div class="info-item">
+                <span class="info-label">Généré par</span>
+                <span class="info-value">{{ report.generated_by.get_full_name }}</span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">Format</span>
+                <span class="info-value">{{ report.output_format|upper }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Résumé -->
+    {% if data.summary %}
+    <div class="summary">
+        <div class="summary-title">Résumé</div>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="summary-value">{{ data.summary.total }}</div>
+                <div class="summary-label">Total</div>
+            </div>
+            
+            <div class="summary-item">
+                <div class="summary-value">{{ data.summary.approved }}</div>
+                <div class="summary-label">Approuvés</div>
+            </div>
+            
+            <div class="summary-item">
+                <div class="summary-value">{{ data.summary.pending }}</div>
+                <div class="summary-label">En attente</div>
+            </div>
+            
+            <div class="summary-item">
+                <div class="summary-value">{{ data.summary.rejected }}</div>
+                <div class="summary-label">Rejetés</div>
+            </div>
+            
+            {% if data.summary.total_days %}
+            <div class="summary-item">
+                <div class="summary-value">{{ data.summary.total_days }}</div>
+                <div class="summary-label">Jours totaux</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Données détaillées -->
+    <div class="content">
+        {% if report.report_type == 'leave_summary' %}
+            {% include "leaves/reports/_leave_summary.html" %}
+        {% elif report.report_type == 'balance' %}
+            {% include "leaves/reports/_balance_summary.html" %}
+        {% elif report.report_type == 'attendance' %}
+            {% include "leaves/reports/_attendance_summary.html" %}
+        {% else %}
+            {% include "leaves/reports/_custom_summary.html" %}
+        {% endif %}
+    </div>
+    
+    <!-- Pied de page -->
+    <div class="footer">
+        <div>Rapport généré par {{ company.name }}</div>
+        <div>{{ company.address|default:"" }}</div>
+        <div>Page <span class="page-number"></span></div>
+    </div>
+    
+    <script>
+        // Numérotation des pages
+        document.addEventListener('DOMContentLoaded', function() {
+            const pages = document.querySelectorAll('.page-number');
+            for (let i = 0; i < pages.length; i++) {
+                pages[i].textContent = (i + 1);
+            }
+        });
+    </script>
+</body>
+</html>

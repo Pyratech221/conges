@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Liste des Départements{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-3 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-building text-primary me-2"></i>Liste des Départements
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'users:department_create' %}" class="btn btn-custom-primary">
+            <i class="fas fa-plus-circle me-2"></i>Nouveau département
+        </a>
+    </div>
+</div>
+
+<div class="card custom-card">
+    <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Départements disponibles</h5>
+        <span class="badge bg-light text-dark">{{ departments.count }} département(s)</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-custom mb-0">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Code</th>
+                        <th>Entreprise</th>
+                        <th>Direction</th>
+                        <th>Manager</th>
+                        <th>Services</th>
+                        <th>Membres</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for department in departments %}
+                    <tr>
+                        <td>
+                            <strong>{{ department.name }}</strong>
+                            {% if department.description %}
+                            <br>
+                            <small class="text-muted">{{ department.description|truncatechars:50 }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if department.code %}
+                            <span class="badge bg-secondary">{{ department.code }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ department.company.name }}</td>
+                        <td>
+                            {% if department.division %}
+                            {{ department.division.name }}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if department.manager %}
+                            <div class="d-flex align-items-center">
+                                {% if department.manager.profile_picture %}
+                                <img src="{{ department.manager.profile_picture.url }}" 
+                                     alt="{{ department.manager.get_full_name }}" 
+                                     class="rounded-circle me-2" width="24" height="24">
+                                {% endif %}
+                                <div>
+                                    <small>{{ department.manager.get_full_name }}</small>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ department.services.count }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ department.members.count }}</span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'users:department_create' %}" 
+                                   class="btn btn-outline-secondary" title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="#" 
+                                   class="btn btn-outline-danger" title="Supprimer"
+                                   data-bs-toggle="modal" data-bs-target="#deleteModal{{ department.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                            
+                            <!-- Modal de suppression -->
+                            <div class="modal fade" id="deleteModal{{ department.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Confirmer la suppression</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Êtes-vous sûr de vouloir supprimer le département <strong>{{ department.name }}</strong> ?</p>
+                                            {% if department.services.count > 0 or department.members.count > 0 %}
+                                            <div class="alert alert-warning">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                Ce département contient :
+                                                {% if department.services.count > 0 %}
+                                                <br>- {{ department.services.count }} service(s)
+                                                {% endif %}
+                                                {% if department.members.count > 0 %}
+                                                <br>- {{ department.members.count }} membre(s)
+                                                {% endif %}
+                                                <br>La suppression n'est pas recommandée.
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                            <form method="post" action="#" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger">Supprimer</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <i class="fas fa-building fa-2x text-muted mb-3"></i><br>
+                            <p class="text-muted">Aucun département créé</p>
+                            <a href="{% url 'users:department_create' %}" class="btn btn-custom-primary btn-sm">
+                                <i class="fas fa-plus-circle me-2"></i>Créer un département
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,278 @@
+{% extends "leaves/base_leaves.html" %}
+{% load crispy_forms_tags %}
+
+{% block page_title %}{% if leave_type %}Modifier{% else %}Nouveau{% endif %} Type de Congé{% endblock %}
+{% block page_subtitle %}{% if leave_type %}Modifiez les paramètres du type de congé{% else %}Créez un nouveau type de congé{% endif %}{% endblock %}
+
+{% block action_buttons %}
+<a href="{% url 'leaves:leavetype_list' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Retour
+</a>
+{% endblock %}
+
+{% block leaves_content %}
+<div class="row">
+    <div class="col-lg-8">
+        <form method="post" class="form-section">
+            {% csrf_token %}
+            
+            <h5 class="form-section-title mb-4">
+                <i class="fas fa-info-circle me-2"></i>Informations de base
+            </h5>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.name|as_crispy_field }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.category|as_crispy_field }}
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.code|as_crispy_field }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Couleur</label>
+                    <div class="input-group">
+                        {{ form.color }}
+                        <span class="input-group-text color-preview" 
+                              style="background-color: {{ form.color.value|default:'#007bff' }}"></span>
+                    </div>
+                    <small class="form-text text-muted">Couleur pour l'affichage dans le calendrier</small>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                {{ form.icon|as_crispy_field }}
+                <small class="form-text text-muted">
+                    Classe CSS FontAwesome (ex: fas fa-calendar, fas fa-heart)
+                </small>
+            </div>
+            
+            <div class="mb-4">
+                {{ form.description|as_crispy_field }}
+            </div>
+            
+            <h5 class="form-section-title mt-4 mb-4">
+                <i class="fas fa-cog me-2"></i>Configuration
+            </h5>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="form-check form-switch">
+                        {{ form.requires_approval }}
+                        <label class="form-check-label" for="{{ form.requires_approval.id_for_label }}">
+                            Nécessite une validation
+                        </label>
+                    </div>
+                    <small class="form-text text-muted">La demande doit être validée par un responsable</small>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="form-check form-switch">
+                        {{ form.requires_document }}
+                        <label class="form-check-label" for="{{ form.requires_document.id_for_label }}">
+                            Nécessite un justificatif
+                        </label>
+                    </div>
+                    <small class="form-text text-muted">Un document doit être joint à la demande</small>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="form-check form-switch">
+                        {{ form.deduct_from_balance }}
+                        <label class="form-check-label" for="{{ form.deduct_from_balance.id_for_label }}">
+                            Déduit du solde
+                        </label>
+                    </div>
+                    <small class="form-text text-muted">Les jours sont déduits du solde de l'employé</small>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <div class="form-check form-switch">
+                    {{ form.is_active }}
+                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                        Actif
+                    </label>
+                </div>
+                <small class="form-text text-muted">Le type de congé est disponible pour les demandes</small>
+            </div>
+            
+            <h5 class="form-section-title mt-4 mb-4">
+                <i class="fas fa-sliders-h me-2"></i>Limites et restrictions
+            </h5>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    {{ form.max_days_per_year|as_crispy_field }}
+                </div>
+                <div class="col-md-4 mb-3">
+                    {{ form.max_consecutive_days|as_crispy_field }}
+                </div>
+                <div class="col-md-4 mb-3">
+                    {{ form.min_notice_days|as_crispy_field }}
+                </div>
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{% url 'leaves:leavetype_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Annuler
+                </a>
+                <div>
+                    {% if leave_type %}
+                    <button type="submit" class="btn btn-custom-primary">
+                        <i class="fas fa-save me-2"></i>Enregistrer les modifications
+                    </button>
+                    {% else %}
+                    <button type="submit" class="btn btn-custom-primary">
+                        <i class="fas fa-plus me-2"></i>Créer le type de congé
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Sidebar avec prévisualisation -->
+    <div class="col-lg-4">
+        <div class="form-section">
+            <h5 class="form-section-title">
+                <i class="fas fa-eye me-2"></i>Prévisualisation
+            </h5>
+            
+            <!-- Aperçu dans le calendrier -->
+            <div class="mb-4">
+                <h6>Dans le calendrier</h6>
+                <div class="border rounded p-3 bg-light">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge me-2" id="previewColor" 
+                              style="background-color: {{ form.color.value|default:'#007bff' }}; color: white;">
+                            <i id="previewIcon" class="{{ form.icon.value|default:'fas fa-calendar' }}"></i>
+                        </span>
+                        <span id="previewName">{{ form.name.value|default:"Nom du type" }}</span>
+                    </div>
+                    <small class="text-muted" id="previewDescription">
+                        {{ form.description.value|default:"Description du type de congé"|truncatechars:80 }}
+                    </small>
+                </div>
+            </div>
+            
+            <!-- Aperçu dans la liste -->
+            <div class="mb-4">
+                <h6>Dans la liste des types</h6>
+                <div class="list-group">
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <span class="badge me-2" id="listPreviewColor"
+                                      style="background-color: {{ form.color.value|default:'#007bff' }}; color: white;">
+                                    <i id="listPreviewIcon" class="{{ form.icon.value|default:'fas fa-calendar' }}"></i>
+                                </span>
+                                <div>
+                                    <strong id="listPreviewName">{{ form.name.value|default:"Nom du type" }}</strong>
+                                    <div class="text-muted small" id="listPreviewCategory">
+                                        {{ form.category.value|default:"paid"|title }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="badge bg-success" id="previewStatus">
+                                    {% if form.is_active.value == True or not form.is_active.value %}Actif{% else %}Inactif{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Informations utiles -->
+            <div class="alert alert-info">
+                <h6><i class="fas fa-lightbulb me-2"></i>Conseils</h6>
+                <ul class="mb-0 ps-3">
+                    <li>Utilisez des couleurs distinctes pour chaque type</li>
+                    <li>Les icônes doivent être des classes FontAwesome</li>
+                    <li>Un code court facilite l'identification</li>
+                    <li>Les limites aident à gérer les abus</li>
+                </ul>
+            </div>
+            
+            <!-- Impact sur les workflows -->
+            {% if leave_type %}
+            <div class="alert alert-warning">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>Impact des modifications</h6>
+                <p class="mb-0">
+                    Les modifications peuvent affecter :
+                    <ul class="mb-0 ps-3">
+                        <li>Les demandes en cours</li>
+                        <li>Les workflows de validation</li>
+                        <li>Les calculs de solde</li>
+                    </ul>
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+$(document).ready(function() {
+    // Mettre à jour la prévisualisation en temps réel
+    function updatePreview() {
+        // Mettre à jour la couleur
+        const color = $('#id_color').val() || '#007bff';
+        $('#previewColor, #listPreviewColor').css('background-color', color);
+        $('.color-preview').css('background-color', color);
+        
+        // Mettre à jour l'icône
+        const icon = $('#id_icon').val() || 'fas fa-calendar';
+        $('#previewIcon, #listPreviewIcon').attr('class', icon);
+        
+        // Mettre à jour le nom
+        const name = $('#id_name').val() || 'Nom du type';
+        $('#previewName, #listPreviewName').text(name);
+        
+        // Mettre à jour la description
+        const description = $('#id_description').val() || 'Description du type de congé';
+        $('#previewDescription').text(description.length > 80 ? description.substring(0, 80) + '...' : description);
+        
+        // Mettre à jour la catégorie
+        const category = $('#id_category option:selected').text() || 'Payé';
+        $('#listPreviewCategory').text(category);
+        
+        // Mettre à jour le statut
+        const isActive = $('#id_is_active').is(':checked');
+        $('#previewStatus').text(isActive ? 'Actif' : 'Inactif');
+        $('#previewStatus').removeClass('bg-success bg-danger').addClass(isActive ? 'bg-success' : 'bg-danger');
+    }
+    
+    // Écouter les changements
+    $('#id_name, #id_color, #id_icon, #id_description, #id_category').on('input change', updatePreview);
+    $('#id_is_active').change(updatePreview);
+    
+    // Initialiser la prévisualisation
+    updatePreview();
+    
+    // Afficher/masquer les champs de couleur personnalisée
+    $('#id_color').on('input', function() {
+        if ($(this).val() && !$(this).val().startsWith('#')) {
+            $(this).val('#' + $(this).val());
+        }
+    });
+    
+    // Validation des limites
+    $('#id_max_days_per_year, #id_max_consecutive_days, #id_min_notice_days').on('change', function() {
+        const value = parseInt($(this).val());
+        if (value && value < 0) {
+            alert('La valeur ne peut pas être négative');
+            $(this).val('');
+        }
+    });
+});
+</script>
+{% endblock %}

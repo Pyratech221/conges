@@ -1,0 +1,287 @@
+{% extends "leaves/base_leaves.html" %}
+{% load crispy_forms_tags %}
+
+{% block page_title %}{% if leave %}Modifier{% else %}Nouvelle{% endif %} Demande de Congé{% endblock %}
+{% block page_subtitle %}Remplissez le formulaire pour {% if leave %}modifier{% else %}créer{% endif %} votre demande{% endblock %}
+
+{% block leaves_content %}
+<div class="row">
+    <div class="col-lg-8">
+        <form method="post" enctype="multipart/form-data" class="form-section">
+            {% csrf_token %}
+            
+            <h5 class="form-section-title mb-4">
+                <i class="fas fa-info-circle me-2"></i>Informations Générales
+            </h5>
+            
+            <div class="row mb-4">
+                {% if balance %}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Votre solde actuel de congés payés : 
+                        <strong>{{ balance.remaining_days }} jour{{ balance.remaining_days|pluralize:"s" }}</strong>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="row">
+                <!-- Type de congé -->
+                <div class="col-md-6 mb-3">
+                    {{ form.leave_type|as_crispy_field }}
+                </div>
+                
+                <!-- Dates -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Période</label>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            {{ form.start_date|as_crispy_field }}
+                        </div>
+                        <div class="col-6">
+                            {{ form.end_date|as_crispy_field }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Types de jour -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    {{ form.start_day_type|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.end_day_type|as_crispy_field }}
+                </div>
+            </div>
+            
+            <!-- Heures spécifiques (masqué par défaut) -->
+            <div id="specific-hours" class="row mb-3" style="display: none;">
+                <div class="col-md-6">
+                    {{ form.start_time|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.end_time|as_crispy_field }}
+                </div>
+            </div>
+            
+            <h5 class="form-section-title mt-4 mb-4">
+                <i class="fas fa-file-alt me-2"></i>Détails
+            </h5>
+            
+            <!-- Motif -->
+            <div class="mb-3">
+                {{ form.reason|as_crispy_field }}
+            </div>
+            
+            <!-- Contact pendant le congé -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    {{ form.contact_during_leave|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.phone_during_leave|as_crispy_field }}
+                </div>
+            </div>
+            
+            <!-- Remplaçant -->
+            <div class="mb-3">
+                {{ form.replacement|as_crispy_field }}
+            </div>
+            
+            <!-- Justificatif -->
+            <div class="mb-4">
+                {{ form.attachment|as_crispy_field }}
+                {% if leave and leave.attachment %}
+                <div class="mt-2">
+                    <a href="{{ leave.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-download me-2"></i>Voir le fichier actuel
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{% url 'leaves:leave_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Annuler
+                </a>
+                <div>
+                    {% if leave and leave.status == 'draft' %}
+                    <button type="submit" name="save_draft" class="btn btn-warning">
+                        <i class="fas fa-save me-2"></i>Sauvegarder le brouillon
+                    </button>
+                    <button type="submit" name="submit" class="btn btn-custom-primary">
+                        <i class="fas fa-paper-plane me-2"></i>Soumettre la demande
+                    </button>
+                    {% else %}
+                    <button type="submit" class="btn btn-custom-primary">
+                        <i class="fas fa-{% if leave %}save{% else %}plus{% endif %} me-2"></i>
+                        {% if leave %}Mettre à jour{% else %}Créer la demande{% endif %}
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Sidebar avec informations -->
+    <div class="col-lg-4">
+        <div class="form-section">
+            <h5 class="form-section-title">
+                <i class="fas fa-lightbulb me-2"></i>Informations Utiles
+            </h5>
+            
+            <!-- Résumé du type de congé -->
+            <div id="leave-type-info" class="mb-4">
+                <div class="alert alert-info">
+                    <h6 class="alert-heading">Sélectionnez un type de congé</h6>
+                    <p class="mb-0">Les informations spécifiques s'afficheront ici.</p>
+                </div>
+            </div>
+            
+            <!-- Calendrier mini -->
+            <div class="mb-4">
+                <h6><i class="fas fa-calendar-alt me-2"></i>Période sélectionnée</h6>
+                <div id="selected-period" class="alert alert-secondary">
+                    Aucune période sélectionnée
+                </div>
+            </div>
+            
+            <!-- Calcul automatique -->
+            <div class="alert alert-warning">
+                <h6><i class="fas fa-calculator me-2"></i>Calcul automatique</h6>
+                <ul class="mb-0 ps-3">
+                    <li>La durée totale est calculée automatiquement</li>
+                    <li>Les jours ouvrables sont déterminés en fonction des jours fériés</li>
+                    <li>Les weekends (Samedi/Dimanche) sont exclus</li>
+                </ul>
+            </div>
+            
+            <!-- Conseils -->
+            <div class="alert alert-light border">
+                <h6><i class="fas fa-tips me-2"></i>Conseils</h6>
+                <ul class="mb-0 ps-3">
+                    <li>Remplissez tous les champs obligatoires (*)</li>
+                    <li>Vérifiez votre solde avant de soumettre</li>
+                    <li>Joignez un justificatif si requis</li>
+                    <li>Prévenez votre remplaçant à l'avance</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+$(document).ready(function() {
+    // Afficher/masquer les heures spécifiques
+    function toggleSpecificHours() {
+        const startType = $('#id_start_day_type').val();
+        const endType = $('#id_end_day_type').val();
+        
+        if (startType === 'specific_hours' || endType === 'specific_hours') {
+            $('#specific-hours').show();
+        } else {
+            $('#specific-hours').hide();
+        }
+    }
+    
+    $('#id_start_day_type, #id_end_day_type').change(toggleSpecificHours);
+    toggleSpecificHours();
+    
+    // Mettre à jour le résumé de la période
+    function updatePeriodSummary() {
+        const startDate = $('#id_start_date').val();
+        const endDate = $('#id_end_date').val();
+        
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            $('#selected-period').html(`
+                <strong>Du:</strong> ${start.toLocaleDateString('fr-FR')}<br>
+                <strong>Au:</strong> ${end.toLocaleDateString('fr-FR')}<br>
+                <strong>Durée:</strong> ${diffDays} jour${diffDays > 1 ? 's' : ''}
+            `);
+        } else {
+            $('#selected-period').text('Aucune période sélectionnée');
+        }
+    }
+    
+    $('#id_start_date, #id_end_date').change(updatePeriodSummary);
+    updatePeriodSummary();
+    
+    // Mettre à jour les informations du type de congé
+    $('#id_leave_type').change(function() {
+        const leaveTypeId = $(this).val();
+        if (leaveTypeId) {
+            // Charger les informations du type de congé via AJAX
+            $.ajax({
+                url: `/leaves/api/leave-type/${leaveTypeId}/`,
+                success: function(data) {
+                    let html = `
+                        <h6 class="alert-heading">${data.name}</h6>
+                        <p class="mb-1"><strong>Catégorie:</strong> ${data.category_display}</p>
+                    `;
+                    
+                    if (data.max_days_per_year) {
+                        html += `<p class="mb-1"><strong>Max par an:</strong> ${data.max_days_per_year} jours</p>`;
+                    }
+                    
+                    if (data.max_consecutive_days) {
+                        html += `<p class="mb-1"><strong>Max consécutifs:</strong> ${data.max_consecutive_days} jours</p>`;
+                    }
+                    
+                    if (data.min_notice_days > 0) {
+                        html += `<p class="mb-1"><strong>Préavis minimum:</strong> ${data.min_notice_days} jours</p>`;
+                    }
+                    
+                    if (data.requires_document) {
+                        html += `<p class="mb-0 text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Justificatif requis</p>`;
+                    }
+                    
+                    $('#leave-type-info').html(`<div class="alert alert-info">${html}</div>`);
+                }
+            });
+        } else {
+            $('#leave-type-info').html(`
+                <div class="alert alert-info">
+                    <h6 class="alert-heading">Sélectionnez un type de congé</h6>
+                    <p class="mb-0">Les informations spécifiques s'afficheront ici.</p>
+                </div>
+            `);
+        }
+    });
+    
+    // Calcul automatique de la durée
+    $('#id_start_date, #id_end_date').change(function() {
+        const startDate = $('#id_start_date').val();
+        const endDate = $('#id_end_date').val();
+        
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            // Vérifier que la date de début est avant la date de fin
+            if (start > end) {
+                alert('La date de début doit être avant la date de fin.');
+                $('#id_end_date').val('');
+                return;
+            }
+            
+            // Calculer la différence en jours
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            // Mettre à jour l'affichage
+            updatePeriodSummary();
+        }
+    });
+});
+</script>
+{% endblock %}

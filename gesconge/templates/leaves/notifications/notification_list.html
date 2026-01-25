@@ -1,0 +1,343 @@
+{% extends "leaves/base_leaves.html" %}
+{% load humanize %}
+{% load leaves_filters %}
+{% block page_title %}Notifications{% endblock %}
+{% block page_subtitle %}Consultez vos notifications et alertes{% endblock %}
+
+{% block action_buttons %}
+{% if unread_count > 0 %}
+<form method="post" action="{% url 'leaves:mark_all_read' %}" class="d-inline">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-success">
+        <i class="fas fa-check-double me-2"></i>Tout marquer comme lu
+    </button>
+</form>
+{% endif %}
+<form method="post" action="{% url 'leaves:clear_all' %}" class="d-inline">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger confirm-clear">
+        <i class="fas fa-trash-alt me-2"></i>Supprimer les lus
+    </button>
+</form>
+{% endblock %}
+
+{% block leaves_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bell me-2"></i>Notifications
+                    </h5>
+                    {% if unread_count > 0 %}
+                    <span class="badge bg-danger">
+                        {{ unread_count }} non lu{{ unread_count|pluralize:"s" }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                {% if page_obj %}
+                <div class="list-group list-group-flush">
+                    {% for notification in page_obj %}
+                    <div class="list-group-item px-0 {% if not notification.is_read %}bg-light{% endif %}">
+                        <div class="d-flex w-100 justify-content-between">
+                            <div class="flex-grow-1 me-3">
+                                <!-- Icône selon le type -->
+                                <div class="float-start me-3">
+                                    {% if notification.notification_type == 'leave_request' %}
+                                    <i class="fas fa-paper-plane text-primary fa-lg"></i>
+                                    {% elif notification.notification_type == 'leave_approved' %}
+                                    <i class="fas fa-check-circle text-success fa-lg"></i>
+                                    {% elif notification.notification_type == 'leave_rejected' %}
+                                    <i class="fas fa-times-circle text-danger fa-lg"></i>
+                                    {% elif notification.notification_type == 'approval_required' %}
+                                    <i class="fas fa-tasks text-warning fa-lg"></i>
+                                    {% elif notification.notification_type == 'reminder' %}
+                                    <i class="fas fa-bell text-info fa-lg"></i>
+                                    {% else %}
+                                    <i class="fas fa-info-circle text-secondary fa-lg"></i>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Contenu de la notification -->
+                                <div class="overflow-hidden">
+                                    <h6 class="mb-1">
+                                        {{ notification.title }}
+                                        {% if not notification.is_read %}
+                                        <span class="badge bg-primary ms-2">Nouveau</span>
+                                        {% endif %}
+                                    </h6>
+                                    <p class="mb-1">{{ notification.message|linebreaks }}</p>
+                                    
+                                    <!-- Métadonnées -->
+                                    <div class="small text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ notification.created_at|timesince }}
+                                        
+                                        {% if notification.priority == 2 %}
+                                        <span class="badge bg-warning ms-2">Important</span>
+                                        {% elif notification.priority == 3 %}
+                                        <span class="badge bg-danger ms-2">Urgent</span>
+                                        {% endif %}
+                                        
+                                        {% if notification.content_type %}
+                                        <a href="{{ notification.get_absolute_url }}" class="ms-2">
+                                            <i class="fas fa-external-link-alt me-1"></i>Voir
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Actions -->
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                        type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    {% if not notification.is_read %}
+                                    <li>
+                                        <a class="dropdown-item" 
+                                           href="{% url 'leaves:mark_notification_read' notification.pk %}">
+                                            <i class="fas fa-check me-2"></i>Marquer comme lu
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                    <li>
+                                        <a class="dropdown-item" 
+                                           href="{% url 'leaves:delete_notification' notification.pk %}"
+                                           onclick="return confirm('Supprimer cette notification ?')">
+                                            <i class="fas fa-trash me-2"></i>Supprimer
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Pagination -->
+                {% include "leaves/includes/_pagination.html" with page_obj=page_obj %}
+                
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Aucune notification</h5>
+                    <p class="text-muted">Vous n'avez aucune notification pour le moment</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques des notifications -->
+<div class="row mt-4">
+    <div class="col-md-4 mb-3">
+        <div class="custom-card">
+            <div class="card-body">
+                <h6><i class="fas fa-chart-pie me-2"></i>Répartition par type</h6>
+                <canvas id="notificationChart" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="custom-card">
+            <div class="card-body">
+                <h6><i class="fas fa-tachometer-alt me-2"></i>Statistiques</h6>
+                <div class="row text-center mt-3">
+                    <div class="col-6 mb-3">
+                        <div class="display-6 text-primary">{{ page_obj.paginator.count }}</div>
+                        <div class="text-muted small">Total</div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="display-6 text-success">{{ read_count }}
+</div>
+                        <div class="text-muted small">Lues</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="display-6 text-warning">{{ important_count }}
+</div>
+                        <div class="text-muted small">Importantes</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="display-6 text-danger">{{ urgent_count }}</div>
+                        <div class="text-muted small">Urgentes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="custom-card">
+            <div class="card-body">
+                <h6><i class="fas fa-cog me-2"></i>Préférences</h6>
+                <div class="mt-3">
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="emailNotifications" 
+                               {% if request.user.profile.email_notifications %}checked{% endif %}>
+                        <label class="form-check-label" for="emailNotifications">
+                            Notifications par email
+                        </label>
+                    </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="desktopNotifications" checked>
+                        <label class="form-check-label" for="desktopNotifications">
+                            Notifications bureau
+                        </label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="mobileNotifications" checked>
+                        <label class="form-check-label" for="mobileNotifications">
+                            Notifications mobiles
+                        </label>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a href="{% url 'users:profile' %}#notifications" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="fas fa-sliders-h me-2"></i>Gérer les préférences
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Graphique des types de notifications
+    const notificationData = {};
+    {% for notification in page_obj %}
+        const type = '{{ notification.notification_type }}';
+        notificationData[type] = (notificationData[type] || 0) + 1;
+    {% endfor %}
+    
+    if (Object.keys(notificationData).length > 0) {
+        const ctx = document.getElementById('notificationChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(notificationData).map(type => {
+                    const types = {
+                        'leave_request': 'Demandes',
+                        'leave_approved': 'Approbations',
+                        'leave_rejected': 'Rejets',
+                        'approval_required': 'Validations',
+                        'reminder': 'Rappels',
+                        'system': 'Système'
+                    };
+                    return types[type] || type;
+                }),
+                datasets: [{
+                    data: Object.values(notificationData),
+                    backgroundColor: [
+                        '#10536E', '#28a745', '#dc3545', 
+                        '#ffc107', '#17a2b8', '#6c757d'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    // Confirmation avant suppression de toutes les notifications lues
+    $('.confirm-clear').on('click', function(e) {
+        if (!confirm('Supprimer toutes les notifications lues ?\n\nCette action est irréversible.')) {
+            e.preventDefault();
+        }
+    });
+    
+    // Gérer les préférences
+    $('#emailNotifications').change(function() {
+        const enabled = $(this).is(':checked');
+        fetch('/users/api/update-notification-settings/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email_notifications: enabled
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Préférences mises à jour', 'success');
+            } else {
+                showToast('Erreur lors de la mise à jour', 'error');
+                $(this).prop('checked', !enabled);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Erreur de connexion', 'error');
+            $(this).prop('checked', !enabled);
+        });
+    });
+    
+    // Fonction d'aide pour les toasts
+    function showToast(message, type) {
+        const toast = $(`
+            <div class="toast align-items-center text-bg-${type} border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `);
+        
+        $('#toastContainer').append(toast);
+        const bsToast = new bootstrap.Toast(toast[0]);
+        bsToast.show();
+        
+        toast.on('hidden.bs.toast', function() {
+            $(this).remove();
+        });
+    }
+    
+    // Conteneur pour les toasts
+    if (!$('#toastContainer').length) {
+        $('body').append('<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>');
+    }
+    
+    // Auto-refresh des notifications (toutes les 30 secondes)
+    setInterval(function() {
+        fetch('/leaves/api/notification-count/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.unread_count > 0) {
+                    updateNotificationBadge(data.unread_count);
+                }
+            });
+    }, 30000);
+    
+    // Mettre à jour le badge de notification
+    function updateNotificationBadge(count) {
+        // Mettre à jour dans la navbar si existe
+        const badge = $('.notification-badge');
+        if (badge.length) {
+            badge.text(count);
+            badge.toggle(count > 0);
+        }
+    }
+});
+</script>
+{% endblock %}

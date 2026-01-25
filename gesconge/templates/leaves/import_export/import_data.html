@@ -1,0 +1,514 @@
+{% extends "leaves/base_leaves.html" %}
+{% load crispy_forms_tags %}
+
+{% block page_title %}Import/Export de Données{% endblock %}
+{% block page_subtitle %}Importez et exportez des données depuis/vers des fichiers{% endblock %}
+
+{% block action_buttons %}
+<a href="{% url 'leaves:export_data' %}" class="btn btn-success">
+    <i class="fas fa-download me-2"></i>Exporter
+</a>
+{% endblock %}
+
+{% block leaves_content %}
+<div class="row">
+    <!-- Import -->
+    <div class="col-lg-6">
+        <div class="custom-card h-100">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-upload me-2"></i>Importer des Données
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" id="importForm">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        {{ form.import_type|as_crispy_field }}
+                    </div>
+                    
+                    <div class="mb-4">
+                        {{ form.data_file|as_crispy_field }}
+                        <small class="form-text text-muted">
+                            Formats acceptés: CSV, Excel (.xlsx, .xls)
+                        </small>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            {{ form.update_existing }}
+                            <label class="form-check-label" for="{{ form.update_existing.id_for_label }}">
+                                Mettre à jour les enregistrements existants
+                            </label>
+                        </div>
+                        <small class="form-text text-muted">
+                            Si coché, les données existantes seront mises à jour. Sinon, seuls les nouveaux enregistrements seront ajoutés.
+                        </small>
+                    </div>
+                    
+                    <!-- Prévisualisation (masquée par défaut) -->
+                    <div id="previewSection" class="mb-4" style="display: none;">
+                        <h6><i class="fas fa-eye me-2"></i>Prévisualisation</h6>
+                        <div id="previewContent" class="border rounded p-3 bg-light">
+                            <div class="text-center py-3">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Chargement...</span>
+                                </div>
+                                <div class="text-muted small mt-2">Chargement de la prévisualisation...</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Instructions selon le type -->
+                    <div id="importInstructions" class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Instructions</h6>
+                        <p id="instructionsText">Sélectionnez un type d'import pour voir les instructions</p>
+                        <a href="#" id="templateLink" class="btn btn-sm btn-outline-primary mt-2" style="display: none;">
+                            <i class="fas fa-download me-2"></i>Télécharger le modèle
+                        </a>
+                    </div>
+                    
+                    <!-- Bouton d'import -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-custom-primary" id="importButton">
+                            <i class="fas fa-upload me-2"></i>Importer les données
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Export -->
+    <div class="col-lg-6">
+        <div class="custom-card h-100">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-download me-2"></i>Exporter des Données
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h6>Export rapide</h6>
+                    <div class="list-group list-group-flush">
+                        <a href="{% url 'leaves:export_data' %}?type=leave_requests" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <div>
+                                    <i class="fas fa-calendar text-primary me-2"></i>
+                                    <strong>Demandes de congé</strong>
+                                </div>
+                                <i class="fas fa-chevron-right text-muted"></i>
+                            </div>
+                            <small class="text-muted">3 derniers mois, format CSV</small>
+                        </a>
+                        
+                        <a href="{% url 'leaves:export_data' %}?type=leave_balances" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <div>
+                                    <i class="fas fa-coins text-success me-2"></i>
+                                    <strong>Soldes de congés</strong>
+                                </div>
+                                <i class="fas fa-chevron-right text-muted"></i>
+                            </div>
+                            <small class="text-muted">Année en cours, format Excel</small>
+                        </a>
+                        
+                        <a href="{% url 'leaves:export_data' %}?type=attendance" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <div>
+                                    <i class="fas fa-clipboard-check text-info me-2"></i>
+                                    <strong>Présences</strong>
+                                </div>
+                                <i class="fas fa-chevron-right text-muted"></i>
+                            </div>
+                            <small class="text-muted">3 derniers mois, format CSV</small>
+                        </a>
+                        
+                        <a href="{% url 'leaves:export_data' %}?type=users" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <div>
+                                    <i class="fas fa-users text-warning me-2"></i>
+                                    <strong>Utilisateurs</strong>
+                                </div>
+                                <i class="fas fa-chevron-right text-muted"></i>
+                            </div>
+                            <small class="text-muted">Tous les employés actifs, format Excel</small>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Export personnalisé -->
+                <div class="mt-4">
+                    <h6>Export personnalisé</h6>
+                    <form method="get" action="{% url 'leaves:export_data' %}" class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Type de données</label>
+                            <select name="type" class="form-select" required>
+                                <option value="">Sélectionnez...</option>
+                                <option value="leave_requests">Demandes de congé</option>
+                                <option value="leave_balances">Soldes de congés</option>
+                                <option value="attendance">Présences</option>
+                                <option value="users">Utilisateurs</option>
+                                <option value="holidays">Jours fériés</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Format</label>
+                            <select name="format" class="form-select" required>
+                                <option value="csv">CSV</option>
+                                <option value="excel">Excel</option>
+                                <option value="json">JSON</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date de début</label>
+                            <input type="date" name="start_date" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date de fin</label>
+                            <input type="date" name="end_date" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-download me-2"></i>Exporter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Statistiques d'export -->
+                <div class="mt-4">
+                    <h6>Statistiques</h6>
+                    <div class="row text-center">
+                        <div class="col-4 mb-3">
+                            <div class="text-primary fw-bold">
+                                {% with leave_count=request.user.company.leave_requests.count %}
+                                {{ leave_count }}
+                                {% endwith %}
+                            </div>
+                            <div class="text-muted small">Congés</div>
+                        </div>
+                        <div class="col-4 mb-3">
+                            <div class="text-success fw-bold">
+                                {% with user_count=request.user.company.users.count %}
+                                {{ user_count }}
+                                {% endwith %}
+                            </div>
+                            <div class="text-muted small">Employés</div>
+                        </div>
+                        <div class="col-4 mb-3">
+                            <div class="text-info fw-bold">
+                                {% with attendance_count=request.user.company.attendances.count %}
+                                {{ attendance_count }}
+                                {% endwith %}
+                            </div>
+                            <div class="text-muted small">Présences</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Historique des imports -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Historique des Imports
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Fichier</th>
+                                <th>Enregistrements</th>
+                                <th>Statut</th>
+                                <th>Par</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for import in import_history %}
+                            <tr>
+                                <td>{{ import.created_at|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {{ import.get_import_type_display }}
+                                    </span>
+                                </td>
+                                <td>{{ import.file_name|default:"-" }}</td>
+                                <td>
+                                    <span class="badge bg-primary">
+                                        {{ import.record_count|default:"0" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if import.status == 'completed' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Terminé
+                                    </span>
+                                    {% elif import.status == 'failed' %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times me-1"></i>Échoué
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-clock me-1"></i>En cours
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ import.created_by.get_full_name }}</td>
+                                <td>
+                                    {% if import.log_file %}
+                                    <a href="{{ import.log_file.url }}" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-file-alt"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-3">
+                                    Aucun import réalisé
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+$(document).ready(function() {
+    // Mettre à jour les instructions selon le type d'import
+    $('#id_import_type').change(function() {
+        const importType = $(this).val();
+        let instructions = '';
+        let templateUrl = '';
+        
+        switch(importType) {
+            case 'users':
+                instructions = `
+                    <strong>Import d'utilisateurs</strong><br>
+                    Le fichier doit contenir les colonnes suivantes:
+                    <ul>
+                        <li>email (obligatoire)</li>
+                        <li>first_name</li>
+                        <li>last_name</li>
+                        <li>employee_id</li>
+                        <li>position</li>
+                        <li>department (nom du département)</li>
+                        <li>service (nom du service)</li>
+                        <li>hire_date (YYYY-MM-DD)</li>
+                    </ul>
+                `;
+                templateUrl = '/static/templates/users_import_template.csv';
+                break;
+                
+            case 'leave_balances':
+                instructions = `
+                    <strong>Import des soldes de congés</strong><br>
+                    Le fichier doit contenir les colonnes suivantes:
+                    <ul>
+                        <li>employee_email ou employee_id (identifiant)</li>
+                        <li>leave_type (nom du type de congé)</li>
+                        <li>year (année)</li>
+                        <li>entitled_days (jours acquis)</li>
+                        <li>used_days (jours utilisés)</li>
+                        <li>carried_over_days (jours reportés)</li>
+                    </ul>
+                `;
+                templateUrl = '/static/templates/balances_import_template.csv';
+                break;
+                
+            case 'holidays':
+                instructions = `
+                    <strong>Import des jours fériés</strong><br>
+                    Le fichier doit contenir les colonnes suivantes:
+                    <ul>
+                        <li>name (nom du jour férié)</li>
+                        <li>date (YYYY-MM-DD)</li>
+                        <li>is_recurring (true/false)</li>
+                        <li>description</li>
+                    </ul>
+                `;
+                templateUrl = '/static/templates/holidays_import_template.csv';
+                break;
+                
+            case 'attendance':
+                instructions = `
+                    <strong>Import des présences</strong><br>
+                    Le fichier doit contenir les colonnes suivantes:
+                    <ul>
+                        <li>employee_email ou employee_id</li>
+                        <li>attendance_type (workshop/training/meeting)</li>
+                        <li>title</li>
+                        <li>start_datetime (YYYY-MM-DD HH:MM)</li>
+                        <li>end_datetime (YYYY-MM-DD HH:MM)</li>
+                        <li>location</li>
+                        <li>description</li>
+                    </ul>
+                `;
+                templateUrl = '/static/templates/attendance_import_template.csv';
+                break;
+                
+            default:
+                instructions = 'Sélectionnez un type d\'import pour voir les instructions';
+        }
+        
+        $('#instructionsText').html(instructions);
+        
+        if (templateUrl) {
+            $('#templateLink').attr('href', templateUrl).show();
+        } else {
+            $('#templateLink').hide();
+        }
+        
+        // Réinitialiser la prévisualisation
+        $('#previewSection').hide();
+        $('#previewContent').html(`
+            <div class="text-center py-3">
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+                <div class="text-muted small mt-2">Chargement de la prévisualisation...</div>
+            </div>
+        `);
+    }).trigger('change');
+    
+    // Prévisualiser le fichier
+    $('#id_data_file').change(function() {
+        const file = this.files[0];
+        if (!file) return;
+        
+        const importType = $('#id_import_type').val();
+        if (!importType) {
+            alert('Veuillez d\'abord sélectionner un type d\'import');
+            $(this).val('');
+            return;
+        }
+        
+        // Vérifier l'extension du fichier
+        const validExtensions = ['.csv', '.xlsx', '.xls'];
+        const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        
+        if (!validExtensions.includes(fileExtension)) {
+            alert('Format de fichier non supporté. Utilisez CSV ou Excel.');
+            $(this).val('');
+            return;
+        }
+        
+        // Afficher la section de prévisualisation
+        $('#previewSection').show();
+        
+        // Lire et prévisualiser le fichier
+        const reader = new FileReader();
+        
+        if (fileExtension === '.csv') {
+            reader.onload = function(e) {
+                const content = e.target.result;
+                previewCSV(content);
+            };
+            reader.readAsText(file);
+        } else {
+            // Pour Excel, nous affichons simplement les informations du fichier
+            $('#previewContent').html(`
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Fichier Excel détecté. Prévisualisation disponible après import.
+                    <div class="mt-2">
+                        <strong>Nom:</strong> ${file.name}<br>
+                        <strong>Taille:</strong> ${(file.size / 1024).toFixed(2)} KB<br>
+                        <strong>Type:</strong> Excel
+                    </div>
+                </div>
+            `);
+        }
+    });
+    
+    // Fonction pour prévisualiser le CSV
+    function previewCSV(content) {
+        const lines = content.split('\n').slice(0, 11); // Premières 10 lignes
+        let html = '<div class="table-responsive">';
+        html += '<table class="table table-sm table-bordered">';
+        
+        lines.forEach((line, index) => {
+            const cells = line.split(',').map(cell => cell.trim());
+            html += '<tr>';
+            cells.forEach(cell => {
+                if (index === 0) {
+                    html += `<th>${cell}</th>`;
+                } else {
+                    html += `<td>${cell}</td>`;
+                }
+            });
+            html += '</tr>';
+            
+            // Limiter à 10 lignes max
+            if (index >= 10) return false;
+        });
+        
+        html += '</table>';
+        
+        if (lines.length > 10) {
+            html += '<div class="text-muted small">... et ' + (lines.length - 10) + ' lignes supplémentaires</div>';
+        }
+        
+        html += '</div>';
+        
+        $('#previewContent').html(html);
+    }
+    
+    // Validation avant soumission
+    $('#importForm').on('submit', function(e) {
+        const file = $('#id_data_file')[0].files[0];
+        const importType = $('#id_import_type').val();
+        
+        if (!importType) {
+            alert('Veuillez sélectionner un type d\'import');
+            e.preventDefault();
+            return;
+        }
+        
+        if (!file) {
+            alert('Veuillez sélectionner un fichier');
+            e.preventDefault();
+            return;
+        }
+        
+        // Afficher un indicateur de progression
+        $('#importButton').html(`
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Import en cours...
+        `).prop('disabled', true);
+    });
+    
+    // Téléchargement automatique du modèle
+    $('#templateLink').on('click', function(e) {
+        e.preventDefault();
+        const url = $(this).attr('href');
+        
+        // Créer un lien de téléchargement temporaire
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = url.substring(url.lastIndexOf('/') + 1);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,323 @@
+{% extends "leaves/base_leaves.html" %}
+
+{% block page_title %}Détails de la Demande de Congé{% endblock %}
+{% block page_subtitle %}Informations complètes sur la demande{% endblock %}
+
+{% block action_buttons %}
+<a href="{% url 'leaves:leave_list' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Retour
+</a>
+{% if leave.user == request.user and leave.status == 'draft' %}
+<a href="{% url 'leaves:leave_update' leave.pk %}" class="btn btn-warning">
+    <i class="fas fa-edit me-2"></i>Modifier
+</a>
+{% endif %}
+{% if leave.user == request.user and leave.status in 'pending,approved' %}
+<a href="{% url 'leaves:leave_cancel' leave.pk %}" class="btn btn-danger">
+    <i class="fas fa-times me-2"></i>Annuler
+</a>
+{% endif %}
+{% endblock %}
+
+{% block leaves_content %}
+<div class="row">
+    <!-- Informations principales -->
+    <div class="col-lg-8">
+        <div class="custom-card mb-4">
+            <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Informations de la Demande
+                </h5>
+                <span class="leave-status-badge status-{{ leave.status }}">
+                    {{ leave.get_status_display }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <th width="40%">Employé:</th>
+                                <td>{{ leave.user.get_full_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Type de congé:</th>
+                                <td>
+                                    <span class="badge" style="background-color: {{ leave.leave_type.color }}; color: white;">
+                                        <i class="{{ leave.leave_type.icon|default:'fas fa-calendar' }} me-1"></i>
+                                        {{ leave.leave_type.name }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Catégorie:</th>
+                                <td>{{ leave.leave_type.get_category_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>Date de création:</th>
+                                <td>{{ leave.created_at|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <th width="40%">Période:</th>
+                                <td>
+                                    {{ leave.start_date|date:"d/m/Y" }} 
+                                    <i class="fas fa-arrow-right mx-2"></i>
+                                    {{ leave.end_date|date:"d/m/Y" }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Durée:</th>
+                                <td>
+                                    <strong>{{ leave.total_days }} jour{{ leave.total_days|pluralize:"s" }}</strong>
+                                    {% if leave.working_days != leave.total_days %}
+                                    <br>
+                                    <small class="text-muted">({{ leave.working_days }} jour{{ leave.working_days|pluralize:"s" }} ouvrables)</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Type de jour:</th>
+                                <td>
+                                    Début: {{ leave.get_start_day_type_display }}<br>
+                                    Fin: {{ leave.get_end_day_type_display }}
+                                </td>
+                            </tr>
+                            {% if leave.start_time or leave.end_time %}
+                            <tr>
+                                <th>Heures:</th>
+                                <td>
+                                    {% if leave.start_time %}{{ leave.start_time|time:"H:i" }}{% endif %}
+                                    {% if leave.end_time %} - {{ leave.end_time|time:"H:i" }}{% endif %}
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Motif -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-2">Motif</h6>
+                    <div class="border rounded p-3 bg-light">
+                        {{ leave.reason|linebreaks }}
+                    </div>
+                </div>
+                
+                <!-- Contact pendant le congé -->
+                {% if leave.contact_during_leave or leave.phone_during_leave %}
+                <div class="mb-4">
+                    <h6 class="text-muted mb-2">Contact pendant le congé</h6>
+                    <div class="row">
+                        {% if leave.contact_during_leave %}
+                        <div class="col-md-6">
+                            <strong>Personne à contacter:</strong><br>
+                            {{ leave.contact_during_leave }}
+                        </div>
+                        {% endif %}
+                        {% if leave.phone_during_leave %}
+                        <div class="col-md-6">
+                            <strong>Téléphone:</strong><br>
+                            {{ leave.phone_during_leave }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Remplaçant -->
+                {% if leave.replacement %}
+                <div class="mb-4">
+                    <h6 class="text-muted mb-2">Remplaçant</h6>
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" 
+                                 style="width: 50px; height: 50px;">
+                                <i class="fas fa-user text-white"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">{{ leave.replacement.get_full_name }}</h6>
+                            <p class="text-muted mb-0">{{ leave.replacement.position|default:"Employé" }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Justificatif -->
+                {% if leave.attachment %}
+                <div>
+                    <h6 class="text-muted mb-2">Justificatif</h6>
+                    <a href="{{ leave.attachment.url }}" target="_blank" class="btn btn-outline-primary">
+                        <i class="fas fa-download me-2"></i>Télécharger le fichier
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Timeline des approbations -->
+        {% if approvals %}
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-tasks me-2"></i>Processus de Validation
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% for approval in approvals %}
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="mb-0">{{ approval.approver.get_full_name }}</h6>
+                                <span class="badge bg-{% if approval.status == 'approved' %}success{% elif approval.status == 'rejected' %}danger{% else %}warning{% endif %}">
+                                    {{ approval.get_status_display }}
+                                </span>
+                            </div>
+                            <p class="text-muted small mb-2">
+                                Niveau {{ approval.approval_level }}
+                                {% if approval.signed_at %}
+                                <br>Signé le: {{ approval.signed_at|date:"d/m/Y H:i" }}
+                                {% endif %}
+                            </p>
+                            {% if approval.comments %}
+                            <div class="alert alert-light border mt-2">
+                                <strong>Commentaires:</strong><br>
+                                {{ approval.comments|linebreaks }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Sidebar avec informations complémentaires -->
+    <div class="col-lg-4">
+        <!-- Dates importantes -->
+        <div class="custom-card mb-4">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-day me-2"></i>Dates Importantes
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th><i class="fas fa-clock text-primary me-2"></i>Créé le:</th>
+                        <td>{{ leave.created_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% if leave.submitted_at %}
+                    <tr>
+                        <th><i class="fas fa-paper-plane text-info me-2"></i>Soumis le:</th>
+                        <td>{{ leave.submitted_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if leave.approved_at %}
+                    <tr>
+                        <th><i class="fas fa-check-circle text-success me-2"></i>Approuvé le:</th>
+                        <td>{{ leave.approved_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if leave.rejected_at %}
+                    <tr>
+                        <th><i class="fas fa-times-circle text-danger me-2"></i>Rejeté le:</th>
+                        <td>{{ leave.rejected_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if leave.cancelled_at %}
+                    <tr>
+                        <th><i class="fas fa-ban text-secondary me-2"></i>Annulé le:</th>
+                        <td>{{ leave.cancelled_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+        
+        <!-- Jours détaillés -->
+        <div class="custom-card mb-4">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-check me-2"></i>Jours Détail
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if leave.leave_days.exists %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Durée</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for day in leave.leave_days.all %}
+                            <tr>
+                                <td>{{ day.date|date:"d/m/Y" }}</td>
+                                <td>
+                                    <span class="badge bg-{% if day.is_holiday %}warning{% elif not day.is_working_day %}secondary{% else %}primary{% endif %}">
+                                        {% if day.is_holiday %}
+                                        Férié
+                                        {% elif not day.is_working_day %}
+                                        Weekend
+                                        {% else %}
+                                        {{ day.get_day_type_display }}
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td>{{ day.duration }} j</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center mb-0">Aucun jour détaillé disponible</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Actions rapides -->
+        {% if request.user != leave.user and request.user.is_manager %}
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Actions Rapides
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if leave.status == 'pending' %}
+                <div class="d-grid gap-2">
+                    <a href="{% url 'leaves:approval_action' leave.pk %}" class="btn btn-success">
+                        <i class="fas fa-check me-2"></i>Valider la demande
+                    </a>
+                    <a href="{% url 'leaves:approval_action' leave.pk %}" class="btn btn-danger">
+                        <i class="fas fa-times me-2"></i>Rejeter la demande
+                    </a>
+                </div>
+                {% endif %}
+                
+                <!-- Lien vers le calendrier -->
+                <div class="mt-3">
+                    <a href="{% url 'leaves:calendar' %}?start_date={{ leave.start_date|date:'Y-m-d' }}" 
+                       class="btn btn-outline-primary w-100">
+                        <i class="fas fa-calendar-alt me-2"></i>Voir dans le calendrier
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

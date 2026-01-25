@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Supprimer l'utilisateur{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-3 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-user-times text-danger me-2"></i>Supprimer l'utilisateur
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'users:user_list' %}" class="btn btn-custom-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Retour à la liste
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card custom-card">
+            <div class="card-header card-header-custom bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Confirmation de suppression</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    <i class="fas fa-user-slash fa-4x text-danger mb-3"></i>
+                    <h3>Êtes-vous sûr ?</h3>
+                </div>
+                
+                <div class="alert alert-danger alert-custom">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="alert-heading">Cette action est irréversible !</h6>
+                            <p class="mb-0">
+                                Vous êtes sur le point de supprimer définitivement l'utilisateur.
+                                Toutes ses données seront perdues.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            {% if user.profile_picture %}
+                            <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}" 
+                                 class="rounded-circle me-3" width="64" height="64">
+                            {% else %}
+                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" 
+                                 style="width: 64px; height: 64px;">
+                                <i class="fas fa-user text-muted fa-2x"></i>
+                            </div>
+                            {% endif %}
+                            <div class="text-start">
+                                <h5 class="mb-1">{{ user.get_full_name }}</h5>
+                                <p class="text-muted mb-1">{{ user.email }}</p>
+                                <span class="badge bg-primary">{{ user.get_role_display }}</span>
+                                {% if user.employee_id %}
+                                <span class="badge bg-secondary ms-1">{{ user.employee_id }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h6>Informations sur l'utilisateur :</h6>
+                    <div class="row text-start">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Département :</strong> {{ user.department.name|default:"-" }}</p>
+                            <p class="mb-1"><strong>Service :</strong> {{ user.service.name|default:"-" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Date d'embauche :</strong> {{ user.hire_date|date:"d/m/Y"|default:"-" }}</p>
+                            <p class="mb-1"><strong>Statut :</strong> 
+                                {% if user.is_active %}
+                                <span class="badge bg-success">Actif</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactif</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{% url 'users:user_list' %}" class="btn btn-custom-outline-primary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Supprimer définitivement
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

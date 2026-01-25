@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Modifier l'Entreprise{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-3 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-building text-primary me-2"></i>Modifier l'Entreprise
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'users:dashboard' %}" class="btn btn-custom-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Retour au tableau de bord
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Informations de l'entreprise
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label required">Nom de l'entreprise</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="text-danger small">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Logo</label>
+                            {{ form.logo }}
+                            {% if form.logo.errors %}
+                            <div class="text-danger small">{{ form.logo.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">Format: JPG, PNG. Max: 2MB</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Adresse</label>
+                        {{ form.address }}
+                        {% if form.address.errors %}
+                        <div class="text-danger small">{{ form.address.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Téléphone</label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                            <div class="text-danger small">{{ form.phone.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                            <div class="text-danger small">{{ form.email.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Site web</label>
+                            {{ form.website }}
+                            {% if form.website.errors %}
+                            <div class="text-danger small">{{ form.website.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Matricule fiscal</label>
+                            {{ form.fiscal_id }}
+                            {% if form.fiscal_id.errors %}
+                            <div class="text-danger small">{{ form.fiscal_id.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <h5 class="mb-3"><i class="fas fa-calendar-alt me-2 text-primary"></i>Configuration des congés</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label required">Mois de début d'année de congés</label>
+                            {{ form.leave_year_start_month }}
+                            {% if form.leave_year_start_month.errors %}
+                            <div class="text-danger small">{{ form.leave_year_start_month.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">Mois où commence l'année de congés (1=Janvier)</small>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label required">Jour de début d'année de congés</label>
+                            {{ form.leave_year_start_day }}
+                            {% if form.leave_year_start_day.errors %}
+                            <div class="text-danger small">{{ form.leave_year_start_day.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">Jour où commence l'année de congés</small>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info alert-custom">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <small>
+                                    La période de congés est calculée du <strong>{{ form.instance.leave_year_start_day }}/{{ form.instance.leave_year_start_month }}</strong> 
+                                    au <strong>{{ form.instance.leave_year_start_day|add:"-1" }}/{{ form.instance.leave_year_start_month|add:"1" }}</strong>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'users:dashboard' %}" class="btn btn-custom-outline-primary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        
+                        <button type="submit" class="btn btn-custom-primary">
+                            <i class="fas fa-save me-2"></i>Mettre à jour
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ajouter les classes Bootstrap aux champs
+        const textInputs = document.querySelectorAll('input[type="text"], input[type="email"], input[type="url"], input[type="tel"]');
+        textInputs.forEach(input => {
+            input.className = 'form-control';
+        });
+        
+        const selects = document.querySelectorAll('select');
+        selects.forEach(select => {
+            select.className = 'form-select';
+        });
+        
+        const textareas = document.querySelectorAll('textarea');
+        textareas.forEach(textarea => {
+            textarea.className = 'form-control';
+            textarea.rows = 3;
+        });
+        
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        fileInputs.forEach(input => {
+            input.className = 'form-control';
+        });
+        
+        // Prévisualisation du logo
+        const logoInput = document.getElementById('id_logo');
+        if (logoInput) {
+            logoInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        // Créer une prévisualisation
+                        const previewContainer = document.createElement('div');
+                        previewContainer.className = 'mt-2';
+                        previewContainer.innerHTML = `
+                            <img src="${e.target.result}" alt="Prévisualisation" 
+                                 class="img-thumbnail" style="max-width: 150px; max-height: 150px;">
+                        `;
+                        
+                        // Supprimer l'ancienne prévisualisation
+                        const oldPreview = logoInput.parentNode.querySelector('.logo-preview');
+                        if (oldPreview) {
+                            oldPreview.remove();
+                        }
+                        
+                        previewContainer.classList.add('logo-preview');
+                        logoInput.parentNode.appendChild(previewContainer);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

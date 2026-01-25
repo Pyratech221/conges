@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Supprimer le Workflow{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-3 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-trash-alt text-danger me-2"></i>Supprimer le Workflow
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'users:workflow_list' %}" class="btn btn-custom-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Retour à la liste
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card custom-card">
+            <div class="card-header card-header-custom bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Confirmation de suppression</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    <i class="fas fa-tasks fa-4x text-danger mb-3"></i>
+                    <h3>Êtes-vous sûr ?</h3>
+                </div>
+                
+                <div class="alert alert-danger alert-custom">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="alert-heading">Cette action est irréversible !</h6>
+                            <p class="mb-0">
+                                Vous êtes sur le point de supprimer définitivement le workflow.
+                                Cette action ne peut pas être annulée.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ workflow.name }}</h5>
+                        <p class="card-text">
+                            <strong>Entreprise:</strong> {{ workflow.company.name }}<br>
+                            <strong>Niveaux de validation:</strong> {{ workflow.levels }}<br>
+                            <strong>Statut:</strong> 
+                            {% if workflow.is_active %}
+                            <span class="badge bg-success">Actif</span>
+                            {% else %}
+                            <span class="badge bg-danger">Inactif</span>
+                            {% endif %}
+                        </p>
+                        
+                        {% if workflow.description %}
+                        <div class="mt-3">
+                            <strong>Description:</strong>
+                            <p class="text-muted">{{ workflow.description|truncatechars:200 }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h6>Impact de la suppression :</h6>
+                    <ul class="list-unstyled text-start">
+                        <li class="mb-2">
+                            <i class="fas fa-times-circle text-danger me-2"></i>
+                            Toutes les configurations de validation seront perdues
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                            Les demandes en cours utilisant ce workflow pourraient être affectées
+                        </li>
+                        <li>
+                            <i class="fas fa-info-circle text-info me-2"></i>
+                            Les utilisateurs devront être réassignés à un nouveau workflow
+                        </li>
+                    </ul>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{% url 'users:workflow_list' %}" class="btn btn-custom-outline-primary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Supprimer définitivement
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

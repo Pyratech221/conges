@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Workflows de Validation{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-3 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-tasks text-primary me-2"></i>Workflows de Validation
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'users:workflow_create' %}" class="btn btn-custom-primary">
+            <i class="fas fa-plus-circle me-2"></i>Nouveau workflow
+        </a>
+    </div>
+</div>
+
+<!-- Description -->
+<div class="alert alert-info alert-custom mb-4">
+    <div class="d-flex">
+        <div class="flex-shrink-0">
+            <i class="fas fa-info-circle fa-2x"></i>
+        </div>
+        <div class="flex-grow-1 ms-3">
+            <h5 class="alert-heading">Qu'est-ce qu'un workflow de validation ?</h5>
+            <p class="mb-0">
+                Un workflow définit le processus de validation des demandes de congés. 
+                Vous pouvez configurer plusieurs niveaux de validation (N+1, N+2, etc.) 
+                et définir qui valide à chaque étape.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des workflows -->
+<div class="row">
+    {% for workflow in workflows %}
+    <div class="col-md-6 mb-4">
+        <div class="card custom-card h-100">
+            <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ workflow.name }}</h5>
+                <div>
+                    {% if workflow.is_active %}
+                    <span class="badge bg-success">Actif</span>
+                    {% else %}
+                    <span class="badge bg-danger">Inactif</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                {% if workflow.description %}
+                <p class="mb-3">{{ workflow.description }}</p>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <h6>Niveaux de validation</h6>
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+                             style="width: 30px; height: 30px;">1</div>
+                        <div class="ms-3">
+                            <strong>{{ workflow.get_level1_approver_display }}</strong>
+                            {% if workflow.level1_specific_user %}
+                            <br>
+                            <small class="text-muted">{{ workflow.level1_specific_user.get_full_name }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if workflow.levels >= 2 %}
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center" 
+                             style="width: 30px; height: 30px;">2</div>
+                        <div class="ms-3">
+                            <strong>{{ workflow.get_level2_approver_display }}</strong>
+                            {% if workflow.level2_specific_user %}
+                            <br>
+                            <small class="text-muted">{{ workflow.level2_specific_user.get_full_name }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if workflow.levels >= 3 %}
+                    <div class="d-flex align-items-center">
+                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" 
+                             style="width: 30px; height: 30px;">3</div>
+                        <div class="ms-3">
+                            <strong>{{ workflow.get_level3_approver_display }}</strong>
+                            {% if workflow.level3_specific_user %}
+                            <br>
+                            <small class="text-muted">{{ workflow.level3_specific_user.get_full_name }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Application</h6>
+                    {% if workflow.apply_to_all %}
+                    <span class="badge bg-primary">Toute l'entreprise</span>
+                    {% else %}
+                    {% if workflow.apply_to_departments.count > 0 %}
+                    <div class="mb-1">
+                        <small class="text-muted">Départements:</small><br>
+                        {% for dept in workflow.apply_to_departments.all|slice:":3" %}
+                        <span class="badge bg-secondary">{{ dept.name }}</span>
+                        {% endfor %}
+                        {% if workflow.apply_to_departments.count > 3 %}
+                        <span class="badge bg-light text-dark">+{{ workflow.apply_to_departments.count|add:"-3" }}</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+                
+                <div class="small text-muted">
+                    <i class="fas fa-clock me-1"></i>
+                    Créé le {{ workflow.created_at|date:"d/m/Y" }}
+                    {% if workflow.auto_approve_after_days %}
+                    • <i class="fas fa-robot me-1"></i>
+                    Auto-approbation après {{ workflow.auto_approve_after_days }} jours
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <a href="{% url 'users:workflow_update' workflow.pk %}" 
+                           class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'users:workflow_delete' workflow.pk %}" 
+                           class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                    <div>
+                        {% if workflow.is_active %}
+                        <a href="#" class="btn btn-sm btn-success disabled">
+                            <i class="fas fa-check-circle"></i> Actif
+                        </a>
+                        {% else %}
+                        <a href="#" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-times-circle"></i> Inactif
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card custom-card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">Aucun workflow configuré</h4>
+                <p class="text-muted mb-4">
+                    Créez votre premier workflow de validation pour définir 
+                    le processus d'approbation des congés.
+                </p>
+                <a href="{% url 'users:workflow_create' %}" class="btn btn-custom-primary">
+                    <i class="fas fa-plus-circle me-2"></i>Créer un workflow
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

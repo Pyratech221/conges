@@ -1,0 +1,348 @@
+{% extends "leaves/base_leaves.html" %}
+{% load crispy_forms_tags %}
+
+{% block page_title %}Rapport Rapide{% endblock %}
+{% block page_subtitle %}Générez rapidement un rapport standard{% endblock %}
+
+{% block action_buttons %}
+<a href="{% url 'leaves:report_list' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Retour
+</a>
+{% endblock %}
+
+{% block leaves_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Rapport Rapide
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" class="form-section">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.report_type|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.period|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <!-- Dates personnalisées (masquées par défaut) -->
+                    <div id="customDates" class="row mb-3" style="display: none;">
+                        <div class="col-md-6">
+                            {{ form.custom_start|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.custom_end|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            {{ form.format|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Aperçu du format -->
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-info-circle me-2"></i>Format {{ form.format.value|default:"pdf"|upper }}</h6>
+                                <ul class="mb-0 ps-3">
+                                    <li id="formatPDF" style="display: none;">
+                                        <strong>PDF:</strong> Pour impression et partage
+                                    </li>
+                                    <li id="formatExcel" style="display: none;">
+                                        <strong>Excel:</strong> Pour analyse et calculs
+                                    </li>
+                                    <li id="formatHTML" style="display: none;">
+                                        <strong>HTML:</strong> Pour prévisualisation web
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Aperçu des données -->
+                    <div class="alert alert-warning mb-4" id="quickPreview">
+                        <h6><i class="fas fa-chart-bar me-2"></i>Aperçu</h6>
+                        <p class="mb-0">Sélectionnez un type de rapport pour voir un aperçu</p>
+                    </div>
+                    
+                    <!-- Boutons d'action -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'leaves:report_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-custom-primary">
+                            <i class="fas fa-play me-2"></i>Générer le rapport
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Types de rapports rapides -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="custom-card">
+                    <div class="card-header card-header-custom">
+                        <h5 class="mb-0">
+                            <i class="fas fa-rocket me-2"></i>Rapports Rapides Prédéfinis
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row row-cols-1 row-cols-md-2 g-4">
+                            <div class="col">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <i class="fas fa-calendar-alt text-primary me-2"></i>
+                                            Résumé Mensuel
+                                        </h5>
+                                        <p class="card-text">
+                                            Vue d'ensemble des congés du mois en cours, par département et type.
+                                        </p>
+                                        <button type="button" class="btn btn-outline-primary w-100" 
+                                                onclick="loadQuickReport('monthly_summary')">
+                                            <i class="fas fa-bolt me-2"></i>Générer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <i class="fas fa-users text-success me-2"></i>
+                                            Congés de l'Équipe
+                                        </h5>
+                                        <p class="card-text">
+                                            Congés de votre équipe pour les 30 prochains jours.
+                                        </p>
+                                        <button type="button" class="btn btn-outline-success w-100"
+                                                onclick="loadQuickReport('team_leave')">
+                                            <i class="fas fa-bolt me-2"></i>Générer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <i class="fas fa-coins text-warning me-2"></i>
+                                            Synthèse des Soldes
+                                        </h5>
+                                        <p class="card-text">
+                                            État des soldes de congés par employé pour l'année en cours.
+                                        </p>
+                                        <button type="button" class="btn btn-outline-warning w-100"
+                                                onclick="loadQuickReport('balance_summary')">
+                                            <i class="fas fa-bolt me-2"></i>Générer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <i class="fas fa-clipboard-check text-info me-2"></i>
+                                            Présences RAF
+                                        </h5>
+                                        <p class="card-text">
+                                            Suivi des ateliers et formations validés ce trimestre.
+                                        </p>
+                                        <button type="button" class="btn btn-outline-info w-100"
+                                                onclick="loadQuickReport('attendance_summary')">
+                                            <i class="fas fa-bolt me-2"></i>Générer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+$(document).ready(function() {
+    // Afficher/masquer les dates personnalisées
+    $('#id_period').change(function() {
+        if ($(this).val() === 'custom') {
+            $('#customDates').show();
+        } else {
+            $('#customDates').hide();
+        }
+        updatePreview();
+    });
+    
+    // Mettre à jour l'aperçu du format
+    $('#id_format').change(function() {
+        const format = $(this).val();
+        $('[id^="format"]').hide();
+        $(`#format${format.charAt(0).toUpperCase() + format.slice(1)}`).show();
+    }).trigger('change');
+    
+    // Mettre à jour l'aperçu
+    function updatePreview() {
+        const reportType = $('#id_report_type').val();
+        const period = $('#id_period').val();
+        
+        let previewText = '';
+        
+        switch(reportType) {
+            case 'monthly_summary':
+                previewText = `
+                    <strong>Résumé mensuel des congés</strong><br>
+                    Analyse détaillée des congés par type, département et statut.
+                    Inclut les statistiques et tendances.
+                `;
+                break;
+            case 'team_leave':
+                previewText = `
+                    <strong>Congés de l'équipe</strong><br>
+                    Liste des congés planifiés et en cours pour votre équipe.
+                    Idéal pour la planification des ressources.
+                `;
+                break;
+            case 'balance_summary':
+                previewText = `
+                    <strong>Synthèse des soldes</strong><br>
+                    État complet des soldes de congés par employé.
+                    Met en évidence les soldes faibles et les tendances.
+                `;
+                break;
+            case 'attendance_summary':
+                previewText = `
+                    <strong>Synthèse des présences</strong><br>
+                    Suivi des ateliers, formations et réunions.
+                    Inclut les taux de participation et validation.
+                `;
+                break;
+        }
+        
+        // Ajouter la période
+        let periodText = '';
+        switch(period) {
+            case 'current_month':
+                periodText = 'Mois en cours';
+                break;
+            case 'last_month':
+                periodText = 'Mois dernier';
+                break;
+            case 'current_quarter':
+                periodText = 'Trimestre en cours';
+                break;
+            case 'last_quarter':
+                periodText = 'Trimestre dernier';
+                break;
+            case 'current_year':
+                periodText = 'Année en cours';
+                break;
+            case 'custom':
+                periodText = 'Période personnalisée';
+                break;
+        }
+        
+        if (previewText) {
+            $('#quickPreview').html(`
+                <h6><i class="fas fa-chart-bar me-2"></i>Aperçu</h6>
+                ${previewText}
+                <div class="mt-2">
+                    <i class="fas fa-calendar me-1"></i>
+                    <strong>Période:</strong> ${periodText}
+                </div>
+            `);
+        } else {
+            $('#quickPreview').html(`
+                <h6><i class="fas fa-chart-bar me-2"></i>Aperçu</h6>
+                <p class="mb-0">Sélectionnez un type de rapport pour voir un aperçu</p>
+            `);
+        }
+    }
+    
+    // Charger un rapport rapide prédéfini
+    window.loadQuickReport = function(preset) {
+        let data = {};
+        
+        switch(preset) {
+            case 'monthly_summary':
+                data = {
+                    report_type: 'monthly_summary',
+                    period: 'current_month',
+                    format: 'pdf'
+                };
+                break;
+            case 'team_leave':
+                data = {
+                    report_type: 'team_leave',
+                    period: 'custom',
+                    custom_start: getDateXDaysAgo(30),
+                    custom_end: getToday(),
+                    format: 'excel'
+                };
+                break;
+            case 'balance_summary':
+                data = {
+                    report_type: 'balance_summary',
+                    period: 'current_year',
+                    format: 'excel'
+                };
+                break;
+            case 'attendance_summary':
+                data = {
+                    report_type: 'attendance_summary',
+                    period: 'current_quarter',
+                    format: 'pdf'
+                };
+                break;
+        }
+        
+        // Remplir le formulaire
+        Object.keys(data).forEach(key => {
+            const element = $(`#id_${key}`);
+            if (element.length) {
+                element.val(data[key]).trigger('change');
+            }
+        });
+        
+        updatePreview();
+        
+        // Faire défiler vers le formulaire
+        $('html, body').animate({
+            scrollTop: $('#quickPreview').offset().top - 100
+        }, 500);
+    }
+    
+    // Fonctions utilitaires de date
+    function getToday() {
+        const today = new Date();
+        return today.toISOString().split('T')[0];
+    }
+    
+    function getDateXDaysAgo(days) {
+        const date = new Date();
+        date.setDate(date.getDate() - days);
+        return date.toISOString().split('T')[0];
+    }
+    
+    // Écouter les changements
+    $('#id_report_type, #id_period').change(updatePreview);
+    
+    // Initialiser
+    updatePreview();
+});
+</script>
+{% endblock %}

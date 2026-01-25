@@ -1,0 +1,465 @@
+{% extends "leaves/base_leaves.html" %}
+{% load humanize %}
+{% load leaves_filters %}
+{% block page_title %}Jours Fériés{% endblock %}
+{% block page_subtitle %}Gérez les jours fériés de l'entreprise{% endblock %}
+
+{% block action_buttons %}
+<button type="button" class="btn btn-custom-primary" data-bs-toggle="modal" data-bs-target="#importHolidaysModal">
+    <i class="fas fa-upload me-2"></i>Importer
+</button>
+<a href="{% url 'leaves:holiday_create' %}" class="btn btn-success">
+    <i class="fas fa-plus me-2"></i>Nouveau Jour
+</a>
+{% endblock %}
+
+{% block leaves_content %}
+<!-- Filtres par année -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="form-section">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="form-section-title mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>Année {{ selected_year }}
+                </h5>
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" 
+                            data-bs-toggle="dropdown">
+                        <i class="fas fa-calendar me-2"></i>Changer d'année
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        {% for year in years %}
+                        <li>
+                            <a class="dropdown-item {% if year == selected_year %}active{% endif %}" 
+                               href="?year={{ year }}">
+                                {{ year }}
+                                {% if year == selected_year %}
+                                <i class="fas fa-check float-end mt-1"></i>
+                                {% endif %}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Calendrier des jours fériés -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-days me-2"></i>Calendrier {{ selected_year }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4" id="holidayCalendar">
+                    {% for month in months %}
+                    <div class="col">
+                        <div class="card h-100">
+                            <div class="card-header bg-light text-center">
+                                <strong>
+                                    {{ month|date_month }}
+                                </strong>
+                            </div>
+                            <div class="card-body p-2">
+                                <div class="row row-cols-7 g-1">
+                                    <!-- En-têtes des jours -->
+                                    <div class="col text-center"><small>L</small></div>
+                                    <div class="col text-center"><small>M</small></div>
+                                    <div class="col text-center"><small>M</small></div>
+                                    <div class="col text-center"><small>J</small></div>
+                                    <div class="col text-center"><small>V</small></div>
+                                    <div class="col text-center"><small>S</small></div>
+                                    <div class="col text-center"><small>D</small></div>
+                                    
+                                    <!-- Jours du mois -->
+                                    {% with month_holidays=holidays|filter_date_month:month %}
+                                    {% with first_day=selected_year|concat:"-"|concat:month|concat:"-01"|date:"w" %}
+                                    {% with days_in_month=month|days_in_month:selected_year %}
+                                    
+                                    <!-- Jours vides au début -->
+                                    {% for i in 0|range_list:first_day %}
+                                    <div class="col"></div>
+                                    {% endfor %}
+                                    
+                                    <!-- Jours du mois -->
+                                    {% for day in 1|range_inclusive:days_in_month %}
+                                    {% with current_date=selected_year|concat:"-"|concat:month|concat:"-"|concat:day %}
+                                    <div class="col text-center">
+                                        <small>
+                                            {% with holiday=month_holidays|filter_date:current_date|first_list %}
+                                            {% if holiday %}
+                                            <span class="badge bg-danger" 
+                                                  data-bs-toggle="tooltip" 
+                                                  title="{{ holiday.name }}"
+                                                  style="cursor: pointer;">
+                                                {{ day }}
+                                            </span>
+                                            {% else %}
+                                            {{ day }}
+                                            {% endif %}
+                                            {% endwith %}
+                                        </small>
+                                    </div>
+                                    {% endwith %}
+                                    {% endfor %}
+                                    
+                                    {% endwith %}
+                                    {% endwith %}
+                                    {% endwith %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des jours fériés -->
+<div class="row">
+    <div class="col-12">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Liste des Jours Fériés
+                    </h5>
+                    <span class="badge bg-primary">{{ holidays|length }} jour{{ holidays|pluralize:"s" }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if holidays %}
+                <div class="table-responsive">
+                    <table class="table table-hover datatable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Nom</th>
+                                <th>Récurrent</th>
+                                <th>Jour de la semaine</th>
+                                <th>Description</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for holiday in holidays %}
+                            <tr>
+                                <td>
+                                    <strong>{{ holiday.date|date:"d/m/Y" }}</strong>
+                                    {% if holiday.date|is_past %}
+                                    <div class="text-muted small">Passé</div>
+                                    {% else %}
+                                    <div class="text-success small">
+                                        Dans {{ holiday.date|days_until }} jour{{ holiday.date|days_until|pluralize:"s" }}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ holiday.name }}</strong>
+                                    {% if holiday.is_recurring %}
+                                    <div class="text-info small">
+                                        <i class="fas fa-redo me-1"></i>Annuel
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if holiday.is_recurring %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Oui
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-times me-1"></i>Non
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">
+                                        {{ holiday.date|date:"l" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if holiday.description %}
+                                    <div style="max-width: 200px;">
+                                        {{ holiday.description|truncatechars:80 }}
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if holiday.is_active %}
+                                    <span class="badge bg-success">Actif</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Inactif</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'leaves:holiday_update' holiday.pk %}" 
+                                           class="btn btn-sm btn-outline-primary"
+                                           data-bs-toggle="tooltip"
+                                           title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'leaves:holiday_delete' holiday.pk %}" 
+                                           class="btn btn-sm btn-outline-danger confirm-delete"
+                                           data-bs-toggle="tooltip"
+                                           title="Supprimer">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-info"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#duplicateModal{{ holiday.pk }}"
+                                                title="Dupliquer">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Modal de duplication -->
+                                    <div class="modal fade" id="duplicateModal{{ holiday.pk }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header" style="background-color: #10536E; color: white;">
+                                                    <h5 class="modal-title">Dupliquer le jour férié</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <form method="post" action="{% url 'leaves:holiday_duplicate' holiday.pk %}">
+                                                    {% csrf_token %}
+                                                    <div class="modal-body">
+                                                        <p>Dupliquer "{{ holiday.name }}" vers une nouvelle année.</p>
+                                                        <div class="mb-3">
+                                                            <label class="form-label">Nouvelle année</label>
+                                                            <input type="number" name="new_year" class="form-control" 
+                                                                   value="{{ selected_year|add:1 }}" min="2000" max="2100" required>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                        <button type="submit" class="btn btn-custom-primary">Dupliquer</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-calendar-xmark fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Aucun jour férié pour {{ selected_year }}</h5>
+                    <p class="text-muted">Commencez par créer vos jours fériés ou importez-les</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <a href="{% url 'leaves:holiday_create' %}" class="btn btn-custom-primary">
+                            <i class="fas fa-plus me-2"></i>Créer manuellement
+                        </a>
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importHolidaysModal">
+                            <i class="fas fa-upload me-2"></i>Importer
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mt-4">
+    <div class="col-md-4 mb-3">
+        <div class="custom-card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-card-value">{{ holidays|length }}</div>
+                        <div class="stat-card-label">Jours fériés</div>
+                    </div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-calendar-day text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="custom-card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-card-value">{{ holidays|filter_by_attr:"is_recurring,True"|length }}</div>
+                        <div class="stat-card-label">Récurrents</div>
+                    </div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-redo text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="custom-card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-card-value">{{ holidays|filter_by_attr:"is_active,True"|length }}</div>
+                        <div class="stat-card-label">Actifs</div>
+                    </div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-check-circle text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'importation -->
+<div class="modal fade" id="importHolidaysModal" tabindex="-1" aria-labelledby="importHolidaysModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #10536E; color: white;">
+                <h5 class="modal-title" id="importHolidaysModalLabel">Importer des Jours Fériés</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'leaves:import_data' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="import_type" value="holidays">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Téléchargez le modèle pour voir le format attendu.
+                        <a href="/static/templates/holidays_import_template.csv" class="alert-link">
+                            Télécharger le modèle
+                        </a>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fichier CSV</label>
+                        <input type="file" name="data_file" class="form-control" accept=".csv" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Année</label>
+                        <select name="year" class="form-select" required>
+                            <option value="{{ selected_year }}" selected>{{ selected_year }}</option>
+                            {% for year in years %}
+                            {% if year != selected_year %}
+                            <option value="{{ year }}">{{ year }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="update_existing" class="form-check-input" id="updateExistingHolidays">
+                        <label class="form-check-label" for="updateExistingHolidays">
+                            Mettre à jour les jours existants
+                        </label>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Les jours existants pour cette année seront remplacés.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-custom-primary">Importer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser DataTables
+    $('.datatable').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
+        },
+        pageLength: 25,
+        order: [[0, 'asc']]
+    });
+    
+    // Initialiser les tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+    
+    // Confirmation avant suppression
+    $('.confirm-delete').on('click', function(e) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce jour férié ?')) {
+            e.preventDefault();
+        }
+    });
+    
+    // Afficher les détails au clic sur un jour férié dans le calendrier
+    $('.badge.bg-danger').on('click', function() {
+        const holidayName = $(this).data('bs-original-title');
+        alert('Jour férié: ' + holidayName);
+    });
+});
+</script>
+
+<!-- Template filters (à ajouter dans votre fichier templatetags) -->
+{% comment %}
+Pour les filtres personnalisés, vous devez créer un fichier templatetags/leaves_filters.py :
+
+from django import template
+from datetime import datetime, date
+import calendar as cal
+
+register = template.Library()
+
+@register.filter
+def date_month(month):
+    months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+    return months[month-1] if 1 <= month <= 12 else ''
+
+@register.filter
+def filter_date_month(holidays, month):
+    return [h for h in holidays if h.date.month == month]
+
+@register.filter
+def filter_date(holidays, date_str):
+    target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    return [h for h in holidays if h.date == target_date]
+
+@register.filter
+def is_past(date_obj):
+    return date_obj < date.today()
+
+@register.filter
+def days_until(date_obj):
+    delta = date_obj - date.today()
+    return delta.days if delta.days > 0 else 0
+
+@register.filter
+def concat(value, arg):
+    return str(value) + str(arg)
+
+@register.filter
+def days_in_month(month, year):
+    return cal.monthrange(int(year), int(month))[1]
+
+@register.filter
+def range(start, end):
+    return range(start, end)
+{% endcomment %}
+{% endblock %}

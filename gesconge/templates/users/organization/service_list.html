@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Liste des Services{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-3 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-users-cog text-primary me-2"></i>Liste des Services
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'users:service_create' %}" class="btn btn-custom-primary">
+            <i class="fas fa-plus-circle me-2"></i>Nouveau service
+        </a>
+    </div>
+</div>
+
+<div class="card custom-card">
+    <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Services disponibles</h5>
+        <span class="badge bg-light text-dark">{{ services.count }} service(s)</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-custom mb-0">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Code</th>
+                        <th>Département</th>
+                        <th>Entreprise</th>
+                        <th>Manager</th>
+                        <th>Membres</th>
+                        <th>Créé le</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for service in services %}
+                    <tr>
+                        <td>
+                            <strong>{{ service.name }}</strong>
+                            {% if service.description %}
+                            <br>
+                            <small class="text-muted">{{ service.description|truncatechars:50 }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if service.code %}
+                            <span class="badge bg-secondary">{{ service.code }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ service.department.name }}</td>
+                        <td>{{ service.department.company.name }}</td>
+                        <td>
+                            {% if service.manager %}
+                            <div class="d-flex align-items-center">
+                                {% if service.manager.profile_picture %}
+                                <img src="{{ service.manager.profile_picture.url }}" 
+                                     alt="{{ service.manager.get_full_name }}" 
+                                     class="rounded-circle me-2" width="24" height="24">
+                                {% endif %}
+                                <div>
+                                    <small>{{ service.manager.get_full_name }}</small>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ service.members.count }}</span>
+                        </td>
+                        <td>{{ service.created_at|date:"d/m/Y" }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'users:service_create' %}" 
+                                   class="btn btn-outline-secondary" title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="#" 
+                                   class="btn btn-outline-danger" title="Supprimer"
+                                   data-bs-toggle="modal" data-bs-target="#deleteModal{{ service.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                            
+                            <!-- Modal de suppression -->
+                            <div class="modal fade" id="deleteModal{{ service.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Confirmer la suppression</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Êtes-vous sûr de vouloir supprimer le service <strong>{{ service.name }}</strong> ?</p>
+                                            {% if service.members.count > 0 %}
+                                            <div class="alert alert-warning">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                Ce service contient {{ service.members.count }} membre(s).
+                                                La suppression n'est pas recommandée.
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                            <form method="post" action="#" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger">Supprimer</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <i class="fas fa-users-cog fa-2x text-muted mb-3"></i><br>
+                            <p class="text-muted">Aucun service créé</p>
+                            <a href="{% url 'users:service_create' %}" class="btn btn-custom-primary btn-sm">
+                                <i class="fas fa-plus-circle me-2"></i>Créer un service
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

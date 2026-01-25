@@ -1,0 +1,1129 @@
+{% load static %}
+{% load humanize %}
+{% load leaves_filters %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gestion des Congés et Absences{% endblock %}</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CSS Personnalisé -->
+    <style>
+        :root {
+            --primary-color: #10536E;
+            --primary-dark: #0a3d52;
+            --primary-light: #1a6e91;
+            --secondary-color: #FFFFFF;
+            --light-gray: #f8f9fa;
+            --medium-gray: #e9ecef;
+            --dark-gray: #343a40;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+        }
+        
+        /* Navigation */
+        .navbar-custom {
+            background-color: var(--primary-color) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .navbar-custom .navbar-brand,
+        .navbar-custom .nav-link {
+            color: var(--secondary-color) !important;
+        }
+        
+        .navbar-custom .nav-link:hover {
+            color: rgba(255,255,255,.8) !important;
+        }
+        
+        .navbar-custom .dropdown-menu {
+            background-color: var(--primary-color);
+        }
+        
+        .navbar-custom .dropdown-item {
+            color: var(--secondary-color);
+        }
+        
+        .navbar-custom .dropdown-item:hover {
+            background-color: var(--primary-light);
+            color: var(--secondary-color);
+        }
+        
+        /* Notifications badge */
+        .notification-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            transform: translate(50%, -50%);
+            font-size: 0.7rem;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Cartes */
+        .custom-card {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .custom-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,.15);
+        }
+        
+        .card-header-custom {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border-radius: 10px 10px 0 0 !important;
+            padding: 15px 20px;
+        }
+        
+        /* Boutons */
+        .btn-custom-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: var(--secondary-color);
+        }
+        
+        .btn-custom-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+            color: var(--secondary-color);
+        }
+        
+        .btn-custom-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-custom-outline-primary:hover {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            background-color: var(--light-gray);
+            border-right: 1px solid var(--medium-gray);
+            overflow-y: auto;
+        }
+        
+        .sidebar .nav-link {
+            color: var(--dark-gray);
+            padding: 10px 15px;
+            margin: 2px 0;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover {
+            background-color: rgba(16, 83, 110, 0.1);
+            color: var(--primary-color);
+        }
+        
+        .sidebar .nav-link.active {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+        }
+        
+        .sidebar .nav-link i {
+            width: 20px;
+            text-align: center;
+            margin-right: 10px;
+        }
+        
+        .sidebar-section {
+            padding: 15px 0;
+            border-bottom: 1px solid var(--medium-gray);
+        }
+        
+        .sidebar-section:last-child {
+            border-bottom: none;
+        }
+        
+        .sidebar-title {
+            padding: 0 15px 10px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Tableaux */
+        .table-custom thead {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+        }
+        
+        .table-custom tbody tr:hover {
+            background-color: rgba(16, 83, 110, 0.05);
+        }
+        
+        /* Badges */
+        .badge-custom-primary {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+        }
+        
+        .badge-custom-success {
+            background-color: var(--success-color);
+            color: var(--secondary-color);
+        }
+        
+        .badge-custom-warning {
+            background-color: var(--warning-color);
+            color: #212529;
+        }
+        
+        .badge-custom-danger {
+            background-color: var(--danger-color);
+            color: var(--secondary-color);
+        }
+        
+        /* Alertes */
+        .alert-custom {
+            border-radius: 8px;
+            border: none;
+        }
+        
+        /* Formulaire */
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(16, 83, 110, 0.25);
+        }
+        
+        /* Pagination */
+        .page-link {
+            color: var(--primary-color);
+        }
+        
+        .page-link:hover {
+            color: var(--primary-dark);
+        }
+        
+        .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        /* Statistic Cards */
+        .stat-card {
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .stat-card i {
+            color: var(--primary-color);
+        }
+        
+        /* Profile Image */
+        .profile-img {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border: 3px solid var(--primary-color);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                min-height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--medium-gray);
+            }
+            
+            .sidebar .nav-link {
+                padding: 8px 15px;
+            }
+        }
+
+        /* Styles supplémentaires pour les templates */
+        .pretty-json {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .pretty-json .key { color: #10536E; font-weight: bold; }
+        .pretty-json .string { color: #28a745; }
+        .pretty-json .number { color: #dc3545; }
+        .pretty-json .boolean { color: #007bff; }
+        .pretty-json .null { color: #6c757d; }
+
+        /* Styles pour les badges avec bouton de fermeture */
+        .badge .btn-close {
+            opacity: 1;
+            filter: invert(1);
+            font-size: 0.5rem;
+            padding: 0.25rem;
+        }
+
+        .badge .btn-close:hover {
+            opacity: 0.8;
+        }
+
+        /* Styles pour les modales */
+        .modal-content {
+            border: none;
+            border-radius: 10px;
+        }
+
+        .modal-header {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border-radius: 10px 10px 0 0;
+        }
+
+        .modal-title {
+            color: var(--secondary-color);
+        }
+
+        /* Styles pour les formulaires en ligne */
+        .form-inline {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* Styles pour les listes groupées */
+        .list-group-item {
+            border-left: none;
+            border-right: none;
+        }
+
+        .list-group-item:first-child {
+            border-top: none;
+        }
+
+        .list-group-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Styles pour les tables responsives */
+        @media (max-width: 768px) {
+            .table-responsive {
+                font-size: 0.9rem;
+            }
+            
+            .table th, .table td {
+                padding: 0.5rem;
+            }
+        }
+        
+        /* Breadcrumb personnalisé */
+        .breadcrumb-custom {
+            background-color: transparent;
+            padding: 0;
+            margin-bottom: 1rem;
+        }
+        
+        .breadcrumb-custom .breadcrumb-item a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        
+        .breadcrumb-custom .breadcrumb-item.active {
+            color: var(--dark-gray);
+        }
+        
+        /* Quick actions */
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .quick-action-btn {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: white;
+            border: 1px solid var(--medium-gray);
+            border-radius: 8px;
+            color: var(--dark-gray);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .quick-action-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        
+        .quick-action-btn i {
+            font-size: 1.2rem;
+            margin-right: 10px;
+        }
+        
+        /* User status indicators */
+        .user-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-active { background-color: var(--success-color); }
+        .status-inactive { background-color: var(--danger-color); }
+        .status-away { background-color: var(--warning-color); }
+        
+        /* Toast notifications */
+        .toast-container {
+            z-index: 1055;
+        }
+        
+        /* Custom scrollbar for sidebar */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'users:dashboard' %}">
+                <i class="fas fa-calendar-alt me-2"></i>
+                Gestion Congés
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Menu principal -->
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'leaves:dashboard' %}">
+                            <i class="fas fa-home me-1"></i>Accueil
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'leaves:calendar' %}">
+                            <i class="fas fa-calendar-alt me-1"></i>Calendrier
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-chart-bar me-1"></i>Rapports
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'leaves:report_list' %}">
+                                <i class="fas fa-list me-2"></i>Tous les rapports
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'leaves:quick_report' %}">
+                                <i class="fas fa-bolt me-2"></i>Rapport rapide
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'leaves:report_create' %}">
+                                <i class="fas fa-plus me-2"></i>Nouveau rapport
+                            </a></li>
+                        </ul>
+                    </li>
+                    
+                    {% if user.is_hr or user.is_admin %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-cogs me-1"></i>Administration
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'leaves:leavetype_list' %}">
+                                <i class="fas fa-tags me-2"></i>Types de congés
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'leaves:holiday_list' %}">
+                                <i class="fas fa-calendar-day me-2"></i>Jours fériés
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'leaves:balance_management' %}">
+                                <i class="fas fa-coins me-2"></i>Gestion des soldes
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'leaves:import_data' %}">
+                                <i class="fas fa-upload me-2"></i>Import/Export
+                            </a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+                
+                <!-- Notifications et profil utilisateur -->
+                <ul class="navbar-nav ms-auto">
+                    <!-- Notifications -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link position-relative" href="#" id="notificationsDropdown" 
+                           role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-bell"></i>
+                            {% with unread_count=user.notifications.all|is_read:False|length %}
+                            {% if unread_count > 0 %}
+                            <span class="notification-badge badge bg-danger">
+                                {{ unread_count }}
+                            </span>
+                            {% endif %}
+                            {% endwith %}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" style="min-width: 300px;">
+                            <li class="dropdown-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Notifications</span>
+                                    {% with unread_count=user.notifications.all|is_read:False|length %}
+                                    {% if unread_count > 0 %}
+                                    <a href="{% url 'leaves:mark_all_read' %}" class="btn btn-sm btn-link">
+                                        Tout marquer comme lu
+                                    </a>
+                                    {% endif %}
+                                    {% endwith %}
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            
+                            {% for notification in user.notifications.all|slice:":5" %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'leaves:notification_list' %}">
+                                    <div class="d-flex w-100">
+                                        <div class="me-3">
+                                            {% if notification.notification_type == 'leave_request' %}
+                                            <i class="fas fa-paper-plane text-primary"></i>
+                                            {% elif notification.notification_type == 'leave_approved' %}
+                                            <i class="fas fa-check-circle text-success"></i>
+                                            {% elif notification.notification_type == 'leave_rejected' %}
+                                            <i class="fas fa-times-circle text-danger"></i>
+                                            {% elif notification.notification_type == 'approval_required' %}
+                                            <i class="fas fa-tasks text-warning"></i>
+                                            {% else %}
+                                            <i class="fas fa-info-circle text-info"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="small text-muted">
+                                                {{ notification.created_at|timesince }}
+                                            </div>
+                                            <div class="{% if not notification.is_read %}fw-bold{% endif %}">
+                                                {{ notification.title|truncatechars:40 }}
+                                            </div>
+                                        </div>
+                                        {% if not notification.is_read %}
+                                        <span class="badge bg-primary">Nouveau</span>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                            </li>
+                            {% empty %}
+                            <li class="dropdown-item text-center text-muted py-3">
+                                Aucune notification
+                            </li>
+                            {% endfor %}
+                            
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="text-center">
+                                <a href="{% url 'leaves:notification_list' %}" class="dropdown-item">
+                                    <i class="fas fa-eye me-2"></i>Voir toutes les notifications
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Demandes en attente de validation -->
+                    {% if user.is_approver or user.is_manager %}
+                    {% with pending_count=user.leave_approvals.all|status:'pending'|length %}
+                    {% if pending_count > 0 %}
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="{% url 'leaves:approval_list' %}">
+                            <i class="fas fa-tasks"></i>
+                            <span class="notification-badge badge bg-warning">
+                                {{ pending_count }}
+                            </span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endwith %}
+                    {% endif %}
+                    
+                    <!-- Profil utilisateur -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>
+                            {{ user.get_full_name|default:user.username }}
+                            <span class="user-status status-active"></span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li class="dropdown-header">
+                                <div class="text-center">
+                                    <div class="fw-bold">{{ user.get_full_name }}</div>
+                                    <small class="text-muted">{{ user.position|default:"Employé" }}</small>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'users:profile' %}">
+                                    <i class="fas fa-user-cog me-2"></i>Mon Profil
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'leaves:balance' %}">
+                                    <i class="fas fa-coins me-2"></i>Mon Solde
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'leaves:leave_list' %}">
+                                    <i class="fas fa-history me-2"></i>Mes Congés
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'users:change_password' %}">
+                                    <i class="fas fa-key me-2"></i>Changer mot de passe
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'users:logout' %}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+    
+    <div class="container-fluid">
+        <div class="row">
+            {% if user.is_authenticated %}
+            <div class="col-lg-2 col-md-3 d-none d-md-block sidebar">
+                <div class="pt-3">
+                    <!-- Section Congés -->
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">
+                            <i class="fas fa-plane me-1"></i> Congés
+                        </div>
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'leave_list' %}active{% endif %}" 
+                                   href="{% url 'leaves:leave_list' %}">
+                                    <i class="fas fa-list"></i>Mes Demandes
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'leave_create' %}active{% endif %}" 
+                                   href="{% url 'leaves:leave_create' %}">
+                                    <i class="fas fa-plus-circle"></i>Nouvelle Demande
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'calendar' %}active{% endif %}" 
+                                   href="{% url 'leaves:calendar' %}">
+                                    <i class="fas fa-calendar-alt"></i>Calendrier
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'balance' %}active{% endif %}" 
+                                   href="{% url 'leaves:balance' %}">
+                                    <i class="fas fa-coins"></i>Mon Solde
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Section Validation (visible pour les validateurs) -->
+                    {% if user.is_approver or user.is_manager %}
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">
+                            <i class="fas fa-check-circle me-1"></i> Validation
+                        </div>
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'approval_list' %}active{% endif %}" 
+                                   href="{% url 'leaves:approval_list' %}">
+                                    <i class="fas fa-tasks"></i>À Valider
+                                    {% with pending_count=user.leave_approvals.all|status:'pending'|length %}
+                                    {% if pending_count > 0 %}
+                                    <span class="badge bg-warning float-end">{{ pending_count }}</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'bulk_approval' %}active{% endif %}" 
+                                   href="{% url 'leaves:bulk_approval' %}">
+                                    <i class="fas fa-bolt"></i>Validation en masse
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Section Rapports -->
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">
+                            <i class="fas fa-chart-bar me-1"></i> Rapports
+                        </div>
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'report_list' %}active{% endif %}" 
+                                   href="{% url 'leaves:report_list' %}">
+                                    <i class="fas fa-file-alt"></i>Tous les rapports
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'quick_report' %}active{% endif %}" 
+                                   href="{% url 'leaves:quick_report' %}">
+                                    <i class="fas fa-bolt"></i>Rapport rapide
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'report_create' %}active{% endif %}" 
+                                   href="{% url 'leaves:report_create' %}">
+                                    <i class="fas fa-plus"></i>Nouveau rapport
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Section Administration (visible pour RH/Admin) -->
+                    {% if user.is_hr or user.is_admin %}
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">
+                            <i class="fas fa-cogs me-1"></i> Administration
+                        </div>
+                        <ul class="nav flex-column">
+                            <!-- Gestion des congés -->
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and 'leavetype' in request.resolver_match.url_name %}active{% endif %}" 
+                                   href="{% url 'leaves:leavetype_list' %}">
+                                    <i class="fas fa-tags"></i>Types de congés
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and 'holiday' in request.resolver_match.url_name %}active{% endif %}" 
+                                   href="{% url 'leaves:holiday_list' %}">
+                                    <i class="fas fa-calendar-day"></i>Jours fériés
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and 'balance_management' in request.resolver_match.url_name %}active{% endif %}" 
+                                   href="{% url 'leaves:balance_management' %}">
+                                    <i class="fas fa-coins"></i>Gestion des soldes
+                                </a>
+                            </li>
+                            
+                            <!-- Import/Export -->
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and 'import_data' in request.resolver_match.url_name %}active{% endif %}" 
+                                   href="{% url 'leaves:import_data' %}">
+                                    <i class="fas fa-exchange-alt"></i>Import/Export
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Section Utilisateurs (visible pour RH/Admin) -->
+                    {% if user.is_hr or user.is_admin %}
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">
+                            <i class="fas fa-users me-1"></i> Utilisateurs
+                        </div>
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'users' and 'user_list' in request.resolver_match.url_name %}active{% endif %}" 
+                                   href="{% url 'users:user_list' %}">
+                                    <i class="fas fa-list"></i>Liste des employés
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'users' and 'user_create' in request.resolver_match.url_name %}active{% endif %}" 
+                                   href="{% url 'users:user_create' %}">
+                                    <i class="fas fa-user-plus"></i>Nouvel employé
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'users' and 'organization_structure' in request.resolver_match.url_name %}active{% endif %}" 
+                                   href="{% url 'users:organization_structure' %}">
+                                    <i class="fas fa-sitemap"></i>Structure organisationnelle
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Section Configuration -->
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">
+                            <i class="fas fa-sliders-h me-1"></i> Configuration
+                        </div>
+                        <ul class="nav flex-column">
+                            <!-- Workflows (visible pour RH/Admin) -->
+                            {% if user.is_hr or user.is_admin %}
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'users' and 'workflow' in request.resolver_match.url_name %}active{% endif %}" 
+                                   href="{% url 'users:workflow_list' %}">
+                                    <i class="fas fa-tasks"></i>Workflows
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            <!-- Profil utilisateur -->
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'users' and 'profile' in request.resolver_match.url_name %}active{% endif %}" 
+                                   href="{% url 'users:profile' %}">
+                                    <i class="fas fa-user-cog"></i>Mon Profil
+                                </a>
+                            </li>
+                            
+                            <!-- Journal d'activité (visible pour Admin) -->
+                            {% if user.is_admin %}
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.app_name == 'users' and 'activity_log' in request.resolver_match.url_name %}active{% endif %}" 
+                                   href="{% url 'users:activity_log' %}">
+                                    <i class="fas fa-history"></i>Journal d'activité
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    
+                    <!-- Section Statistiques rapides -->
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">
+                            <i class="fas fa-chart-line me-1"></i> Aperçu
+                        </div>
+                        <div class="px-3 py-2">
+                            <div class="small text-muted mb-1">Solde actuel</div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Congés payés:</span>
+                                <span class="fw-bold text-success">
+                                    {% with balance=user.leave_balances.all|leave_type__category:'paid'|first %}
+                                    {{ balance.remaining_days|default:"0.0" }}
+                                    {% endwith %}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Demandes en cours:</span>
+                                <span class="fw-bold text-primary">
+                                    {{ user.leave_requests.all|status:'pending'|length }}
+
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>À valider:</span>
+                                <span class="fw-bold text-warning">
+                                    {% if user.is_approver or user.is_manager %}
+                                    {{ user.leave_approvals.all|status:'pending'|length }}
+                                    {% else %}
+                                    0
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <main class="{% if user.is_authenticated %}col-lg-10 col-md-9{% else %}col-12{% endif %} ms-sm-auto px-4 py-3">
+                <!-- Breadcrumb -->
+                {% block breadcrumb %}
+                <nav aria-label="breadcrumb" class="breadcrumb-custom mb-4">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'users:dashboard' %}">Accueil</a></li>
+                        {% block breadcrumb_items %}{% endblock %}
+                    </ol>
+                </nav>
+                {% endblock %}
+                
+                <!-- Messages -->
+                {% if messages %}
+                <div class="messages-container">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show alert-custom" role="alert">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                {% if message.tags == 'success' %}
+                                <i class="fas fa-check-circle fa-lg"></i>
+                                {% elif message.tags == 'error' or message.tags == 'danger' %}
+                                <i class="fas fa-exclamation-circle fa-lg"></i>
+                                {% elif message.tags == 'warning' %}
+                                <i class="fas fa-exclamation-triangle fa-lg"></i>
+                                {% elif message.tags == 'info' %}
+                                <i class="fas fa-info-circle fa-lg"></i>
+                                {% else %}
+                                <i class="fas fa-bell fa-lg"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">{{ message }}</div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Actions rapides -->
+                {% block quick_actions %}
+                {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'leave_list' %}
+                <div class="quick-actions">
+                    <a href="{% url 'leaves:leave_create' %}" class="quick-action-btn">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Nouvelle demande</span>
+                    </a>
+                    <a href="{% url 'leaves:calendar' %}" class="quick-action-btn">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Voir calendrier</span>
+                    </a>
+                    <a href="{% url 'leaves:balance' %}" class="quick-action-btn">
+                        <i class="fas fa-coins"></i>
+                        <span>Consulter solde</span>
+                    </a>
+                </div>
+                {% elif request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'approval_list' %}
+                <div class="quick-actions">
+                    <a href="{% url 'leaves:bulk_approval' %}" class="quick-action-btn">
+                        <i class="fas fa-bolt"></i>
+                        <span>Validation en masse</span>
+                    </a>
+                    <a href="{% url 'leaves:calendar' %}" class="quick-action-btn">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Calendrier équipe</span>
+                    </a>
+                </div>
+                {% endif %}
+                {% endblock %}
+                
+                <!-- En-tête de page -->
+                {% block page_header %}
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="h3 mb-2" style="color: #10536E;">{% block page_title %}{% endblock %}</h1>
+                        <p class="text-muted mb-0">{% block page_subtitle %}{% endblock %}</p>
+                    </div>
+                    <div class="action-buttons">
+                        {% block action_buttons %}{% endblock %}
+                    </div>
+                </div>
+                {% endblock %}
+                
+                <!-- Contenu principal -->
+                <div class="content-wrapper">
+                    {% block content %}{% endblock %}
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Conteneur pour les toasts -->
+    <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Scripts personnalisés -->
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                var alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    var bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+            
+            // Initialiser les tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+            
+            // Initialiser les popovers
+            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+            var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+                return new bootstrap.Popover(popoverTriggerEl)
+            });
+        });
+        
+        // Fonction utilitaire pour les requêtes AJAX
+        function ajaxRequest(url, method = 'GET', data = null) {
+            const headers = {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            };
+            
+            // Ajouter le token CSRF si nécessaire
+            const csrfToken = getCookie('csrftoken');
+            if (csrfToken && method !== 'GET') {
+                headers['X-CSRFToken'] = csrfToken;
+            }
+            
+            const options = {
+                method: method,
+                headers: headers,
+                credentials: 'same-origin'
+            };
+            
+            if (data && method !== 'GET') {
+                options.body = JSON.stringify(data);
+            }
+            
+            return fetch(url, options)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                });
+        }
+        
+        // Récupérer un cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Afficher un toast
+        function showToast(message, type = 'info', duration = 5000) {
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-bg-${type} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            document.getElementById('toastContainer').appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast, {
+                delay: duration
+            });
+            bsToast.show();
+            
+            toast.addEventListener('hidden.bs.toast', function() {
+                this.remove();
+            });
+        }
+        
+        // Confirmation avant action
+        function confirmAction(message, callback) {
+            if (confirm(message)) {
+                callback();
+            }
+        }
+        
+        // Formater une date
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+        
+        // Formater une date et heure
+        function formatDateTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // Actualiser les notifications automatiquement
+        function refreshNotifications() {
+            ajaxRequest('/leaves/api/notification-count/')
+                .then(data => {
+                    if (data.unread_count > 0) {
+                        updateNotificationBadge(data.unread_count);
+                    }
+                })
+                .catch(error => console.error('Error refreshing notifications:', error));
+        }
+        
+        // Mettre à jour le badge de notification
+        function updateNotificationBadge(count) {
+            const badge = document.querySelector('.notification-badge');
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'flex' : 'none';
+            }
+        }
+        
+        // Actualiser toutes les 30 secondes
+        setInterval(refreshNotifications, 30000);
+        
+        // Initialiser au chargement
+        refreshNotifications();
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

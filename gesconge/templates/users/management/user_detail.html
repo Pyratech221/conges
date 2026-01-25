@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Profil de {{ profile_user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-3 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-user text-primary me-2"></i>Profil de {{ profile_user.get_full_name }}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        {% if request.user.is_hr or request.user.is_admin %}
+        <a href="{% url 'users:user_update' profile_user.pk %}" class="btn btn-custom-primary me-2">
+            <i class="fas fa-edit me-2"></i>Modifier
+        </a>
+        {% endif %}
+        <a href="{% url 'users:user_list' %}" class="btn btn-custom-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Retour à la liste
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Informations personnelles -->
+    <div class="col-md-4 mb-4">
+        <div class="card custom-card">
+            <div class="card-header card-header-custom text-center">
+                <h5 class="mb-0">Photo de profil</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if profile_user.profile_picture %}
+                <img src="{{ profile_user.profile_picture.url }}" alt="Photo de profil" 
+                     class="profile-img rounded-circle mb-3">
+                {% else %}
+                <div class="profile-img rounded-circle mb-3 d-flex align-items-center justify-content-center bg-light mx-auto">
+                    <i class="fas fa-user fa-4x text-muted"></i>
+                </div>
+                {% endif %}
+                
+                <h4>{{ profile_user.get_full_name }}</h4>
+                <p class="text-muted">{{ profile_user.position|default:"Non spécifié" }}</p>
+                
+                <div class="mt-3">
+                    <span class="badge 
+                        {% if profile_user.role == 'admin' %}bg-danger
+                        {% elif profile_user.role == 'hr' %}bg-warning
+                        {% elif profile_user.role == 'manager' %}bg-info
+                        {% else %}bg-secondary{% endif %} mb-2">
+                        {{ profile_user.get_role_display }}
+                    </span><br>
+                    {% if profile_user.employee_id %}
+                    <span class="badge bg-secondary">Matricule: {{ profile_user.employee_id }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Informations de contact -->
+        <div class="card custom-card mt-3">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0"><i class="fas fa-address-card me-2"></i>Informations de contact</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-envelope text-primary me-2"></i>
+                        <strong>Email:</strong><br>
+                        {{ profile_user.email }}
+                    </li>
+                    
+                    {% if profile_user.personal_phone %}
+                    <li class="mb-2">
+                        <i class="fas fa-phone text-primary me-2"></i>
+                        <strong>Téléphone personnel:</strong><br>
+                        {{ profile_user.personal_phone }}
+                    </li>
+                    {% endif %}
+                    
+                    {% if profile_user.emergency_contact %}
+                    <li class="mb-2">
+                        <i class="fas fa-first-aid text-primary me-2"></i>
+                        <strong>Contact d'urgence:</strong><br>
+                        {{ profile_user.emergency_contact }}
+                    </li>
+                    {% endif %}
+                    
+                    {% if profile_user.emergency_phone %}
+                    <li class="mb-2">
+                        <i class="fas fa-phone-alt text-primary me-2"></i>
+                        <strong>Téléphone d'urgence:</strong><br>
+                        {{ profile_user.emergency_phone }}
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Informations professionnelles -->
+    <div class="col-md-8">
+        <div class="card custom-card mb-4">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0"><i class="fas fa-briefcase me-2"></i>Informations professionnelles</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6>Entreprise</h6>
+                        <p>
+                            {% if profile_user.company %}
+                            {{ profile_user.company.name }}
+                            {% else %}
+                            <span class="text-muted">Non spécifié</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <h6>Département</h6>
+                        <p>
+                            {% if profile_user.department %}
+                            {{ profile_user.department.name }}
+                            {% else %}
+                            <span class="text-muted">Non spécifié</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6>Service</h6>
+                        <p>
+                            {% if profile_user.service %}
+                            {{ profile_user.service.name }}
+                            {% else %}
+                            <span class="text-muted">Non spécifié</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <h6>Date d'embauche</h6>
+                        <p>
+                            {% if profile_user.hire_date %}
+                            {{ profile_user.hire_date|date:"d/m/Y" }}
+                            {% else %}
+                            <span class="text-muted">Non spécifié</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6>Type de contrat</h6>
+                        <p>{{ profile_user.contract_type|default:"Non spécifié" }}</p>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <h6>Statut</h6>
+                        <p>
+                            {% if profile_user.is_active %}
+                            <span class="badge bg-success">Actif</span>
+                            {% else %}
+                            <span class="badge bg-danger">Inactif</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                {% if profile_user.is_approver %}
+                <div class="alert alert-info alert-custom mt-3">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="alert-heading">Validateur de congés</h6>
+                            <p class="mb-0">
+                                Cet utilisateur peut valider les congés jusqu'au niveau {{ profile_user.max_approval_level }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if profile_user.is_raf %}
+                <div class="alert alert-warning alert-custom mt-2">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="alert-heading">Responsable Absence Formation (RAF)</h6>
+                            <p class="mb-0">
+                                Cet utilisateur est responsable de la gestion des absences et formations
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if profile_user.notes %}
+                <div class="mt-3">
+                    <h6>Notes</h6>
+                    <div class="bg-light p-3 rounded">
+                        {{ profile_user.notes|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Statistiques des congés -->
+        <div class="card custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Statistiques des congés</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 class="mb-1">{{ total_leaves }}</h3>
+                                <p class="text-muted mb-0">Total des demandes</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 class="mb-1">{{ approved_leaves }}</h3>
+                                <p class="text-muted mb-0">Congés approuvés</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 class="mb-1">{{ pending_leaves }}</h3>
+                                <p class="text-muted mb-0">En attente</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 class="mb-1">{{ upcoming_leaves|length }}</h3>
+                                <p class="text-muted mb-0">À venir</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if upcoming_leaves %}
+                <div class="mt-4">
+                    <h6>Prochains congés</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Période</th>
+                                    <th>Durée</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for leave in upcoming_leaves %}
+                                <tr>
+                                    <td>{{ leave.leave_type }}</td>
+                                    <td>
+                                        {{ leave.start_date|date:"d/m/Y" }} - {{ leave.end_date|date:"d/m/Y" }}
+                                    </td>
+                                    <td>{{ leave.days }} jour(s)</td>
+                                    <td>
+                                        <span class="badge bg-success">Approuvé</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

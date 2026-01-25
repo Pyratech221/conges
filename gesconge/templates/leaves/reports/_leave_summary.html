@@ -1,0 +1,105 @@
+<!-- Tableau des congés -->
+{% if data.leaves %}
+<table>
+    <thead>
+        <tr>
+            <th>Employé</th>
+            <th>Type de congé</th>
+            <th>Date début</th>
+            <th>Date fin</th>
+            <th>Durée</th>
+            <th>Statut</th>
+            <th>Motif</th>
+            <th>Créé le</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for leave in data.leaves %}
+        <tr>
+            <td>{{ leave.user.get_full_name }}</td>
+            <td>{{ leave.leave_type.name }}</td>
+            <td>{{ leave.start_date|date:"d/m/Y" }}</td>
+            <td>{{ leave.end_date|date:"d/m/Y" }}</td>
+            <td>{{ leave.total_days }} jours</td>
+            <td>
+                <span class="badge badge-{{ leave.status }}">
+                    {{ leave.get_status_display }}
+                </span>
+            </td>
+            <td>{{ leave.reason|truncatechars:50 }}</td>
+            <td>{{ leave.created_at|date:"d/m/Y" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Graphique par type -->
+<div class="chart-container">
+    <div class="chart-title">Répartition par type de congé</div>
+    <canvas id="leaveTypeChart" width="400" height="200"></canvas>
+</div>
+
+<!-- Graphique par statut -->
+<div class="chart-container">
+    <div class="chart-title">Répartition par statut</div>
+    <canvas id="leaveStatusChart" width="400" height="200"></canvas>
+</div>
+
+<script>
+    // Graphique par type de congé
+    const typeCtx = document.getElementById('leaveTypeChart').getContext('2d');
+    const typeData = {{ data.leaves|group_by_type|safe }};
+    
+    new Chart(typeCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(typeData),
+            datasets: [{
+                label: 'Nombre de congés',
+                data: Object.values(typeData),
+                backgroundColor: '#10536E',
+                borderColor: '#0a3d52',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+    
+    // Graphique par statut
+    const statusCtx = document.getElementById('leaveStatusChart').getContext('2d');
+    const statusData = {{ data.leaves|group_by_status|safe }};
+    
+    new Chart(statusCtx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(statusData),
+            datasets: [{
+                data: Object.values(statusData),
+                backgroundColor: [
+                    '#28a745', // approved
+                    '#ffc107', // pending
+                    '#dc3545', // rejected
+                    '#6c757d'  // draft
+                ]
+            }]
+        },
+        options: {
+            responsive: false
+        }
+    });
+</script>
+{% else %}
+<div class="no-data">
+    <p>Aucune donnée de congé disponible pour cette période.</p>
+</div>
+{% endif %}

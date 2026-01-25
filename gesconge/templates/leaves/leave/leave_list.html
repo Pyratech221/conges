@@ -1,0 +1,154 @@
+{% extends "leaves/base_leaves.html" %}
+{% load static %}
+
+{% block page_title %}Mes Demandes de Congé{% endblock %}
+{% block page_subtitle %}Gérez vos demandes de congé et suivez leur statut{% endblock %}
+
+{% block action_buttons %}
+<a href="{% url 'leaves:leave_create' %}" class="btn btn-custom-primary">
+    <i class="fas fa-plus me-2"></i>Nouvelle Demande
+</a>
+{% endblock %}
+
+{% block leaves_content %}
+<div class="row mb-4">
+    <!-- Filtres -->
+    <div class="col-12">
+        <div class="form-section">
+            <h5 class="form-section-title">
+                <i class="fas fa-filter me-2"></i>Filtres
+            </h5>
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="id_status" class="form-label">Statut</label>
+                    {{ form.status }}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_leave_type" class="form-label">Type de congé</label>
+                    {{ form.leave_type }}
+                </div>
+                <div class="col-md-2">
+                    <label for="id_date_from" class="form-label">À partir du</label>
+                    {{ form.date_from }}
+                </div>
+                <div class="col-md-2">
+                    <label for="id_date_to" class="form-label">Jusqu'au</label>
+                    {{ form.date_to }}
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-custom-primary w-100">
+                        <i class="fas fa-search me-2"></i>Filtrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-4">
+    {% include "leaves/includes/_stats_cards.html" with stats=stats %}
+</div>
+
+<!-- Liste des congés -->
+<div class="row">
+    <div class="col-12">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Liste des Demandes
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if page_obj %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Période</th>
+                                <th>Durée</th>
+                                <th>Statut</th>
+                                <th>Date de demande</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for leave in page_obj %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge me-2" style="background-color: {{ leave.leave_type.color }}; color: white;">
+                                            <i class="{{ leave.leave_type.icon|default:'fas fa-calendar' }}"></i>
+                                        </span>
+                                        {{ leave.leave_type.name }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {{ leave.start_date|date:"d/m/Y" }} 
+                                    <i class="fas fa-arrow-right mx-2"></i>
+                                    {{ leave.end_date|date:"d/m/Y" }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ leave.total_days }} jour{{ leave.total_days|pluralize:"s" }}</span>
+                                    {% if leave.working_days != leave.total_days %}
+                                    <br>
+                                    <small class="text-muted">({{ leave.working_days }} jour{{ leave.working_days|pluralize:"s" }} ouvrables)</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="leave-status-badge status-{{ leave.status }}">
+                                        {{ leave.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ leave.created_at|date:"d/m/Y" }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'leaves:leave_detail' leave.pk %}" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           data-bs-toggle="tooltip" 
+                                           title="Voir les détails">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if leave.status == 'draft' %}
+                                        <a href="{% url 'leaves:leave_update' leave.pk %}" 
+                                           class="btn btn-sm btn-outline-warning" 
+                                           data-bs-toggle="tooltip" 
+                                           title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if leave.status in 'pending,approved' %}
+                                        <a href="{% url 'leaves:leave_cancel' leave.pk %}" 
+                                           class="btn btn-sm btn-outline-danger" 
+                                           data-bs-toggle="tooltip" 
+                                           title="Annuler">
+                                            <i class="fas fa-times"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% include "leaves/includes/_pagination.html" with page_obj=page_obj %}
+                
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Aucune demande de congé</h5>
+                    <p class="text-muted">Commencez par créer une nouvelle demande</p>
+                    <a href="{% url 'leaves:leave_create' %}" class="btn btn-custom-primary mt-2">
+                        <i class="fas fa-plus me-2"></i>Nouvelle Demande
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

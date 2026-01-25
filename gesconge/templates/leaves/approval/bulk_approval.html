@@ -1,0 +1,329 @@
+{% extends "leaves/base_leaves.html" %}
+
+{% block page_title %}Validation en Masse{% endblock %}
+{% block page_subtitle %}Validez plusieurs demandes de congé en une seule fois{% endblock %}
+
+{% block leaves_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Validation multiple
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Sélection des demandes -->
+                    <div class="mb-4">
+                        <label for="{{ form.leave_requests.id_for_label }}" class="form-label">
+                            <i class="fas fa-list-check me-2"></i>{{ form.leave_requests.label }}
+                            <span class="badge bg-info ms-2" id="selected-count">0 sélectionnée(s)</span>
+                        </label>
+                        
+                        <div class="input-group mb-3">
+                            <button type="button" class="btn btn-outline-secondary" id="select-all">
+                                <i class="fas fa-check-double me-2"></i>Tout sélectionner
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="deselect-all">
+                                <i class="fas fa-times me-2"></i>Tout désélectionner
+                            </button>
+                        </div>
+                        
+                        {{ form.leave_requests }}
+                        {% if form.leave_requests.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.leave_requests.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="form-text">
+                            Maintenez Ctrl (ou Cmd) pour sélectionner plusieurs demandes.
+                        </div>
+                    </div>
+                    
+                    <!-- Action -->
+                    <div class="mb-4">
+                        <label for="{{ form.action.id_for_label }}" class="form-label">
+                            <i class="fas fa-play me-2"></i>{{ form.action.label }}
+                        </label>
+                        {{ form.action }}
+                        {% if form.action.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.action.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Commentaires -->
+                    <div class="mb-4">
+                        <label for="{{ form.comments.id_for_label }}" class="form-label">
+                            <i class="fas fa-comment me-2"></i>{{ form.comments.label }}
+                        </label>
+                        {{ form.comments }}
+                        {% if form.comments.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.comments.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">
+                            Ces commentaires seront appliqués à toutes les demandes sélectionnées.
+                        </div>
+                    </div>
+                    
+                    <!-- Aperçu des sélections -->
+                    <div class="alert alert-secondary" id="selection-preview" style="display: none;">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-eye me-2"></i>Aperçu des demandes sélectionnées
+                        </h6>
+                        <hr>
+                        <div id="preview-content">
+                            <!-- Contenu généré par JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{% url 'leaves:approval_list' %}" class="btn btn-outline-secondary me-2">
+                            <i class="fas fa-arrow-left me-2"></i>Retour
+                        </a>
+                        <button type="submit" name="action" value="process" class="btn btn-custom-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Traiter les demandes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Liste des demandes disponibles -->
+        <div class="custom-card mt-4">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-inbox me-2"></i>Demandes en attente de validation
+                    <span class="badge bg-warning ms-2">{{ total_pending }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if available_requests %}
+                <div class="table-responsive">
+                    <table class="table table-hover" id="requests-table">
+                        <thead>
+                            <tr>
+                                <th width="50">#</th>
+                                <th>Employé</th>
+                                <th>Type</th>
+                                <th>Période</th>
+                                <th>Durée</th>
+                                <th>Soumis le</th>
+                                <th>Urgence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for request in available_requests %}
+                            <tr class="request-row" data-id="{{ request.id }}">
+                                <td>
+                                    <input type="checkbox" class="form-check-input request-checkbox" 
+                                           value="{{ request.id }}" name="preview_{{ request.id }}">
+                                </td>
+                                <td>{{ request.user.get_full_name }}</td>
+                                <td>
+                                    <span class="badge" style="background-color: {{ request.leave_type.color }}; color: white;">
+                                        {{ request.leave_type.name }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ request.start_date|date:"d/m/Y" }} 
+                                    <i class="fas fa-arrow-right mx-1"></i>
+                                    {{ request.end_date|date:"d/m/Y" }}
+                                </td>
+                                <td>{{ request.total_days }} jour{{ request.total_days|pluralize:"s" }}</td>
+                                <td>{{ request.submitted_at|date:"d/m/Y"|default:"-" }}</td>
+                                <td>
+                                    {% with days_until=request.start_date|timeuntil:now %}
+                                    {% if days_until <= 2 %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        {{ days_until }} jour{{ days_until|pluralize:"s" }}
+                                    </span>
+                                    {% elif days_until <= 7 %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ days_until }} jour{{ days_until|pluralize:"s" }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>
+                                        {{ days_until }} jour{{ days_until|pluralize:"s" }}
+                                    </span>
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h5 class="text-success">Aucune demande en attente</h5>
+                    <p class="text-muted">Toutes les demandes ont été traitées</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllBtn = document.getElementById('select-all');
+    const deselectAllBtn = document.getElementById('deselect-all');
+    const requestsSelect = document.getElementById('id_leave_requests');
+    const selectedCount = document.getElementById('selected-count');
+    const previewSection = document.getElementById('selection-preview');
+    const previewContent = document.getElementById('preview-content');
+    const requestRows = document.querySelectorAll('.request-row');
+    const checkboxes = document.querySelectorAll('.request-checkbox');
+    
+    // Mettre à jour le compteur et la prévisualisation
+    function updateSelection() {
+        const selectedOptions = Array.from(requestsSelect.selectedOptions);
+        const count = selectedOptions.length;
+        
+        // Mettre à jour le compteur
+        selectedCount.textContent = `${count} sélectionnée(s)`;
+        
+        // Mettre à jour les cases à cocher du tableau
+        checkboxes.forEach(checkbox => {
+            const isSelected = selectedOptions.some(option => option.value === checkbox.value);
+            checkbox.checked = isSelected;
+            const row = checkbox.closest('.request-row');
+            if (row) {
+                if (isSelected) {
+                    row.classList.add('table-primary');
+                } else {
+                    row.classList.remove('table-primary');
+                }
+            }
+        });
+        
+        // Mettre à jour la prévisualisation
+        if (count > 0) {
+            previewSection.style.display = 'block';
+            
+            let previewHTML = '<div class="row">';
+            selectedOptions.forEach((option, index) => {
+                if (index < 6) { // Limiter à 6 éléments dans l'aperçu
+                    const row = document.querySelector(`.request-row[data-id="${option.value}"]`);
+                    if (row) {
+                        const cells = row.querySelectorAll('td');
+                        previewHTML += `
+                            <div class="col-md-6 mb-2">
+                                <div class="p-2 border rounded">
+                                    <strong>${cells[1].textContent.trim()}</strong><br>
+                                    <small>${cells[2].textContent.trim()} | ${cells[3].textContent.trim()}</small>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+            });
+            
+            if (count > 6) {
+                previewHTML += `
+                    <div class="col-12 mt-2">
+                        <div class="alert alert-info py-1 mb-0">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Et ${count - 6} autre(s) demande(s)...
+                        </div>
+                    </div>
+                `;
+            }
+            
+            previewHTML += '</div>';
+            previewContent.innerHTML = previewHTML;
+        } else {
+            previewSection.style.display = 'none';
+        }
+    }
+    
+    // Gestionnaire pour tout sélectionner
+    selectAllBtn.addEventListener('click', function() {
+        Array.from(requestsSelect.options).forEach(option => {
+            option.selected = true;
+        });
+        updateSelection();
+    });
+    
+    // Gestionnaire pour tout désélectionner
+    deselectAllBtn.addEventListener('click', function() {
+        Array.from(requestsSelect.options).forEach(option => {
+            option.selected = false;
+        });
+        updateSelection();
+    });
+    
+    // Synchroniser les cases à cocher avec la liste déroulante
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const option = Array.from(requestsSelect.options)
+                .find(opt => opt.value === this.value);
+            if (option) {
+                option.selected = this.checked;
+                updateSelection();
+            }
+        });
+    });
+    
+    // Gérer les clics sur les lignes du tableau
+    requestRows.forEach(row => {
+        row.addEventListener('click', function(e) {
+            if (!e.target.matches('input[type="checkbox"]')) {
+                const checkbox = this.querySelector('.request-checkbox');
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    checkbox.dispatchEvent(new Event('change'));
+                }
+            }
+        });
+    });
+    
+    // Mettre à jour la sélection quand la liste déroulante change
+    requestsSelect.addEventListener('change', updateSelection);
+    
+    // Initialiser
+    updateSelection();
+    
+    // Ajouter un style pour les lignes sélectionnées
+    const style = document.createElement('style');
+    style.textContent = `
+        .request-row {
+            cursor: pointer;
+        }
+        .request-row.table-primary {
+            background-color: var(--bs-primary-bg-subtle) !important;
+        }
+    `;
+    document.head.appendChild(style);
+});
+</script>
+{% endblock %}

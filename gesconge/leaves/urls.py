@@ -26,6 +26,11 @@ urlpatterns = [
     path('balance/', views.balance_view, name='balance'),
     path('balance/management/', views.balance_management_view, name='balance_management'),
     path('balance/adjust/<int:user_id>/', views.balance_adjust_view, name='balance_adjust'),
+    path(
+        "balance/bulk-adjust/",
+        views.bulk_balance_adjust_view,
+        name="bulk_balance_adjust"
+    ),
     
     # ==================== URLs de Rapport ====================
     path('reports/', views.report_list_view, name='report_list'),
@@ -45,6 +50,11 @@ urlpatterns = [
     path('admin/holidays/create/', views.holiday_create_view, name='holiday_create'),
     path('admin/holidays/<int:pk>/edit/', views.holiday_update_view, name='holiday_update'),
     path('admin/holidays/<int:pk>/delete/', views.holiday_delete_view, name='holiday_delete'),
+    path(
+        "admin/holidays/<int:pk>/duplicate/",
+        views.holiday_duplicate,
+        name="holiday_duplicate"
+    ),
     
     # ==================== URLs d'Import/Export ====================
     path('import/', views.import_data_view, name='import_data'),

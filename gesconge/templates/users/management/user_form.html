@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-3 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-user-edit text-primary me-2"></i>{{ title }}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'users:user_list' %}" class="btn btn-custom-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Retour à la liste
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-user me-2"></i>
+                    Informations de l'utilisateur
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <!-- Section 1: Informations de base -->
+                        <div class="col-12 mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-id-card me-2 text-primary"></i>Informations de base
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label required">Nom d'utilisateur</label>
+                                    {{ form.username }}
+                                    {% if form.username.errors %}
+                                    <div class="text-danger small">{{ form.username.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label required">Email</label>
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                    <div class="text-danger small">{{ form.email.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label required">Prénom</label>
+                                    {{ form.first_name }}
+                                    {% if form.first_name.errors %}
+                                    <div class="text-danger small">{{ form.first_name.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label required">Nom</label>
+                                    {{ form.last_name }}
+                                    {% if form.last_name.errors %}
+                                    <div class="text-danger small">{{ form.last_name.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Mot de passe</label>
+                                    {{ form.password }}
+                                    {% if form.password.errors %}
+                                    <div class="text-danger small">{{ form.password.errors }}</div>
+                                    {% endif %}
+                                    <small class="text-muted">Laissez vide pour garder le mot de passe actuel</small>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Confirmer le mot de passe</label>
+                                    {{ form.confirm_password }}
+                                    {% if form.confirm_password.errors %}
+                                    <div class="text-danger small">{{ form.confirm_password.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Section 2: Informations professionnelles -->
+                        <div class="col-12 mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-briefcase me-2 text-primary"></i>Informations professionnelles
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label required">Rôle</label>
+                                    {{ form.role }}
+                                    {% if form.role.errors %}
+                                    <div class="text-danger small">{{ form.role.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label required">Entreprise</label>
+                                    {{ form.company }}
+                                    {% if form.company.errors %}
+                                    <div class="text-danger small">{{ form.company.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Département</label>
+                                    {{ form.department }}
+                                    {% if form.department.errors %}
+                                    <div class="text-danger small">{{ form.department.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Service</label>
+                                    {{ form.service }}
+                                    {% if form.service.errors %}
+                                    <div class="text-danger small">{{ form.service.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Matricule</label>
+                                    {{ form.employee_id }}
+                                    {% if form.employee_id.errors %}
+                                    <div class="text-danger small">{{ form.employee_id.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Poste</label>
+                                    {{ form.position }}
+                                    {% if form.position.errors %}
+                                    <div class="text-danger small">{{ form.position.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Date d'embauche</label>
+                                    {{ form.hire_date }}
+                                    {% if form.hire_date.errors %}
+                                    <div class="text-danger small">{{ form.hire_date.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Type de contrat</label>
+                                    {{ form.contract_type }}
+                                    {% if form.contract_type.errors %}
+                                    <div class="text-danger small">{{ form.contract_type.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Section 3: Permissions et statut -->
+                        <div class="col-12 mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-shield-alt me-2 text-primary"></i>Permissions et statut
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="form-check form-switch">
+                                        {{ form.is_active }}
+                                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                            Utilisateur actif
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="form-check form-switch">
+                                        {{ form.is_approver }}
+                                        <label class="form-check-label" for="{{ form.is_approver.id_for_label }}">
+                                            Peut valider les congés
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="form-check form-switch">
+                                        {{ form.is_raf }}
+                                        <label class="form-check-label" for="{{ form.is_raf.id_for_label }}">
+                                            Responsable Absence Formation
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Niveau maximum de validation</label>
+                                    {{ form.max_approval_level }}
+                                    {% if form.max_approval_level.errors %}
+                                    <div class="text-danger small">{{ form.max_approval_level.errors }}</div>
+                                    {% endif %}
+                                    <small class="text-muted">1 = N+1, 2 = N+2, etc.</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Section 4: Notes -->
+                        <div class="col-12 mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-sticky-note me-2 text-primary"></i>Notes
+                            </h6>
+                            
+                            <div class="mb-3">
+                                {{ form.notes }}
+                                {% if form.notes.errors %}
+                                <div class="text-danger small">{{ form.notes.errors }}</div>
+                                {% endif %}
+                                <small class="text-muted">Informations supplémentaires sur l'utilisateur</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons d'action -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'users:user_list' %}" class="btn btn-custom-outline-primary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        
+                        <button type="submit" class="btn btn-custom-primary">
+                            <i class="fas fa-save me-2"></i>Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ajouter les classes Bootstrap aux champs
+        const textInputs = document.querySelectorAll('input[type="text"], input[type="email"], input[type="password"]');
+        textInputs.forEach(input => {
+            input.className = 'form-control';
+        });
+        
+        const selects = document.querySelectorAll('select');
+        selects.forEach(select => {
+            select.className = 'form-select';
+        });
+        
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            if (checkbox.id.includes('is_')) {
+                checkbox.className = 'form-check-input';
+            }
+        });
+        
+        const textareas = document.querySelectorAll('textarea');
+        textareas.forEach(textarea => {
+            textarea.className = 'form-control';
+            textarea.rows = 3;
+        });
+        
+        const dateInputs = document.querySelectorAll('input[type="date"]');
+        dateInputs.forEach(input => {
+            input.className = 'form-control';
+        });
+        
+        // Désactiver le champ entreprise si l'utilisateur n'est pas admin
+        {% if not user.is_admin %}
+        const companyField = document.getElementById('id_company');
+        if (companyField) {
+            companyField.disabled = true;
+            companyField.style.backgroundColor = '#e9ecef';
+        }
+        {% endif %}
+        
+        // Gestion des dépendances entre département et service
+        const departmentField = document.getElementById('id_department');
+        const serviceField = document.getElementById('id_service');
+        
+        if (departmentField && serviceField) {
+            departmentField.addEventListener('change', function() {
+                const departmentId = this.value;
+                if (departmentId) {
+                    fetch(`/users/ajax/get-services/?department_id=${departmentId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            serviceField.innerHTML = '<option value="">---------</option>';
+                            data.forEach(service => {
+                                const option = document.createElement('option');
+                                option.value = service.id;
+                                option.textContent = service.name;
+                                serviceField.appendChild(option);
+                            });
+                        });
+                } else {
+                    serviceField.innerHTML = '<option value="">---------</option>';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

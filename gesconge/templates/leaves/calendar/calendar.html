@@ -1,0 +1,450 @@
+{% extends "leaves/base_leaves.html" %}
+
+{% block page_title %}Calendrier des Congés{% endblock %}
+{% block page_subtitle %}Visualisez tous les congés de l'entreprise{% endblock %}
+
+{% block action_buttons %}
+<button type="button" class="btn btn-custom-primary" onclick="printCalendar()">
+    <i class="fas fa-print me-2"></i>Imprimer
+</button>
+<button type="button" class="btn btn-success" onclick="exportCalendar()">
+    <i class="fas fa-download me-2"></i>Exporter
+</button>
+{% endblock %}
+
+{% block leaves_content %}
+<div class="row">
+    <!-- Filtres -->
+    <div class="col-lg-3">
+        <div class="custom-card mb-4">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-filter me-2"></i>Filtres
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="get" id="calendar-filters">
+                    <div class="mb-3">
+                        <label class="form-label">Vue</label>
+                        {{ form.view_type }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Département</label>
+                        {{ form.department }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Service</label>
+                        {{ form.service }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Type de congé</label>
+                        {{ form.leave_type }}
+                    </div>
+                    
+                    {% if request.user.is_manager %}
+                    <div class="mb-3 form-check">
+                        {{ form.show_only_team }}
+                        <label class="form-check-label" for="{{ form.show_only_team.id_for_label }}">
+                            Afficher uniquement mon équipe
+                        </label>
+                    </div>
+                    {% endif %}
+                    
+                    <button type="submit" class="btn btn-custom-primary w-100">
+                        <i class="fas fa-sync me-2"></i>Appliquer les filtres
+                    </button>
+                </form>
+                
+                <!-- Légende -->
+                <div class="mt-4">
+                    <h6 class="mb-3">
+                        <i class="fas fa-palette me-2"></i>Légende
+                    </h6>
+                    <div id="legend" class="d-flex flex-wrap gap-2">
+                        {% for type in leave_types %}
+                        <div class="legend-item d-flex align-items-center mb-1">
+                            <span class="legend-color me-2" style="background-color: {{ type.color }}; width: 15px; height: 15px; border-radius: 3px;"></span>
+                            <small>{{ type.name }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Statistiques rapides -->
+                <div class="mt-4">
+                    <h6 class="mb-3">
+                        <i class="fas fa-chart-bar me-2"></i>Statistiques
+                    </h6>
+                    <div id="calendar-stats" class="small">
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Chargement...</span>
+                            </div>
+                            <div>Chargement des statistiques...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Calendrier -->
+    <div class="col-lg-9">
+        <div class="custom-card">
+            <div class="card-header card-header-custom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>Calendrier
+                    </h5>
+                    <div id="current-period" class="text-white"></div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="calendar"></div>
+            </div>
+        </div>
+        
+        <!-- Liste des congés (vue liste) -->
+        <div id="list-view" class="custom-card mt-4" style="display: none;">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Liste des Congés
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="leaves-list">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <div class="mt-2">Chargement des congés...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour les détails du congé -->
+<div class="modal fade" id="leaveModal" tabindex="-1" aria-labelledby="leaveModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #10536E; color: white;">
+                <h5 class="modal-title" id="leaveModalLabel">Détails du Congé</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="leaveModalBody">
+                <!-- Contenu chargé dynamiquement -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <a href="#" id="leaveDetailLink" class="btn btn-custom-primary">
+                    <i class="fas fa-external-link-alt me-2"></i>Voir les détails complets
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block leaves_extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser le calendrier
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: '{{ view_type|default:"dayGridMonth" }}',
+        locale: 'fr',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth'
+        },
+        buttonText: {
+            today: 'Aujourd\'hui',
+            month: 'Mois',
+            week: 'Semaine',
+            day: 'Jour',
+            list: 'Liste'
+        },
+        events: function(fetchInfo, successCallback, failureCallback) {
+            // Construire l'URL avec les filtres
+            let url = '{% url "leaves:calendar_events_json" %}?' + 
+                'start=' + fetchInfo.startStr + 
+                '&end=' + fetchInfo.endStr;
+            
+            // Ajouter les filtres du formulaire
+            const formData = new FormData(document.getElementById('calendar-filters'));
+            for (let [key, value] of formData.entries()) {
+                if (value) {
+                    url += '&' + key + '=' + value;
+                }
+            }
+            
+            // Récupérer les événements
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    successCallback(data);
+                    updateStats(data);
+                })
+                .catch(error => {
+                    failureCallback(error);
+                    console.error('Error loading events:', error);
+                });
+        },
+        eventClick: function(info) {
+            // Charger les détails du congé
+            fetch('/leaves/' + info.event.id + '/modal/')
+                .then(response => response.json())
+                .then(data => {
+                    $('#leaveModalBody').html(data.html);
+                    $('#leaveDetailLink').attr('href', '/leaves/' + info.event.id + '/');
+                    $('#leaveModalLabel').text('Détails du Congé: ' + data.title);
+                    $('#leaveModal').modal('show');
+                })
+                .catch(error => {
+                    console.error('Error loading leave details:', error);
+                    $('#leaveModalBody').html(`
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Erreur lors du chargement des détails.
+                        </div>
+                    `);
+                    $('#leaveModal').modal('show');
+                });
+        },
+        eventDidMount: function(info) {
+            // Ajouter un tooltip avec les détails
+            info.el.title = `${info.event.extendedProps.user}\n${info.event.extendedProps.type}\n${info.event.extendedProps.status}`;
+            
+            // Ajouter une icône
+            info.el.innerHTML = `
+                <div class="fc-event-main-frame">
+                    <div class="fc-event-title-container">
+                        <div class="fc-event-title fc-sticky">
+                            <i class="fas fa-user me-1"></i>${info.event.extendedProps.user}
+                        </div>
+                    </div>
+                </div>
+            `;
+        },
+        datesSet: function(info) {
+            // Mettre à jour l'affichage de la période courante
+            const start = info.view.currentStart;
+            const end = info.view.currentEnd;
+            
+            let periodText = '';
+            if (info.view.type === 'dayGridMonth') {
+                const month = start.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+                periodText = month.charAt(0).toUpperCase() + month.slice(1);
+            } else if (info.view.type === 'timeGridWeek') {
+                const weekStart = start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+                const weekEnd = end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+                periodText = `Semaine du ${weekStart} au ${weekEnd}`;
+            } else if (info.view.type === 'timeGridDay') {
+                periodText = start.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                periodText = periodText.charAt(0).toUpperCase() + periodText.slice(1);
+            }
+            
+            $('#current-period').text(periodText);
+        },
+        viewDidMount: function(info) {
+            // Afficher/masquer la vue liste
+            if (info.view.type === 'listMonth') {
+                $('#calendar').hide();
+                $('#list-view').show();
+                loadListView();
+            } else {
+                $('#calendar').show();
+                $('#list-view').hide();
+            }
+        }
+    });
+    
+    calendar.render();
+    
+    // Mettre à jour les statistiques
+    function updateStats(events) {
+        const stats = {
+            total: events.length,
+            byType: {},
+            byUser: {},
+            thisMonth: 0,
+            nextMonth: 0
+        };
+        
+        const now = new Date();
+        const thisMonth = now.getMonth();
+        const thisYear = now.getFullYear();
+        
+        events.forEach(event => {
+            // Par type
+            const type = event.extendedProps.type;
+            stats.byType[type] = (stats.byType[type] || 0) + 1;
+            
+            // Par utilisateur
+            const user = event.extendedProps.user;
+            stats.byUser[user] = (stats.byUser[user] || 0) + 1;
+            
+            // Ce mois-ci
+            const eventDate = new Date(event.start);
+            if (eventDate.getMonth() === thisMonth && eventDate.getFullYear() === thisYear) {
+                stats.thisMonth++;
+            }
+            
+            // Mois prochain
+            if (eventDate.getMonth() === thisMonth + 1 && eventDate.getFullYear() === thisYear) {
+                stats.nextMonth++;
+            }
+        });
+        
+        // Générer le HTML des statistiques
+        let html = `
+            <div class="mb-2">
+                <strong>Total:</strong> ${stats.total} congé${stats.total > 1 ? 's' : ''}
+            </div>
+            <div class="mb-2">
+                <strong>Ce mois-ci:</strong> ${stats.thisMonth}
+            </div>
+            <div class="mb-2">
+                <strong>Mois prochain:</strong> ${stats.nextMonth}
+            </div>
+        `;
+        
+        // Top 3 types
+        const topTypes = Object.entries(stats.byType)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
+        
+        if (topTypes.length > 0) {
+            html += `<div class="mt-3"><strong>Top types:</strong></div>`;
+            topTypes.forEach(([type, count]) => {
+                html += `<div class="small">${type}: ${count}</div>`;
+            });
+        }
+        
+        $('#calendar-stats').html(html);
+    }
+    
+    // Charger la vue liste
+    function loadListView() {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        
+        fetch('{% url "leaves:calendar_events_json" %}?start=' + firstDay.toISOString() + '&end=' + lastDay.toISOString())
+            .then(response => response.json())
+            .then(events => {
+                if (events.length === 0) {
+                    $('#leaves-list').html(`
+                        <div class="text-center py-5">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Aucun congé ce mois-ci</h5>
+                        </div>
+                    `);
+                    return;
+                }
+                
+                // Trier par date de début
+                events.sort((a, b) => new Date(a.start) - new Date(b.start));
+                
+                let html = '<div class="list-group">';
+                events.forEach(event => {
+                    const startDate = new Date(event.start);
+                    const endDate = new Date(event.end);
+                    endDate.setDate(endDate.getDate() - 1); // FullCalendar ajoute un jour
+                    
+                    const duration = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                    
+                    html += `
+                        <a href="/leaves/${event.id}/" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-user me-2"></i>${event.extendedProps.user}
+                                    </h6>
+                                    <p class="mb-1">${event.extendedProps.type}</p>
+                                    <small>
+                                        <i class="fas fa-calendar-day me-1"></i>
+                                        ${startDate.toLocaleDateString('fr-FR')} 
+                                        <i class="fas fa-arrow-right mx-1"></i>
+                                        ${endDate.toLocaleDateString('fr-FR')}
+                                        <span class="badge bg-secondary ms-2">${duration} jour${duration > 1 ? 's' : ''}</span>
+                                    </small>
+                                </div>
+                                <div>
+                                    <span class="badge bg-${event.extendedProps.status === 'approved' ? 'success' : 'warning'}">
+                                        ${event.extendedProps.status}
+                                    </span>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                });
+                html += '</div>';
+                
+                $('#leaves-list').html(html);
+            })
+            .catch(error => {
+                console.error('Error loading list view:', error);
+                $('#leaves-list').html(`
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Erreur lors du chargement de la liste.
+                    </div>
+                `);
+            });
+    }
+    
+    // Fonctions utilitaires
+    function printCalendar() {
+        window.print();
+    }
+    
+    function exportCalendar() {
+        // Exporter en CSV
+        fetch('{% url "leaves:export_data" %}?type=calendar&start=' + 
+              calendar.view.currentStart.toISOString() + 
+              '&end=' + calendar.view.currentEnd.toISOString())
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `calendrier_conges_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            })
+            .catch(error => {
+                console.error('Error exporting calendar:', error);
+                alert('Erreur lors de l\'exportation');
+            });
+    }
+    
+    // Gérer les changements de département pour filtrer les services
+    $('#id_department').change(function() {
+        const departmentId = $(this).val();
+        if (departmentId) {
+            fetch(`/users/api/departments/${departmentId}/services/`)
+                .then(response => response.json())
+                .then(services => {
+                    const serviceSelect = $('#id_service');
+                    serviceSelect.empty();
+                    serviceSelect.append('<option value="">Tous les services</option>');
+                    services.forEach(service => {
+                        serviceSelect.append(`<option value="${service.id}">${service.name}</option>`);
+                    });
+                });
+        } else {
+            $('#id_service').html('<option value="">Tous les services</option>');
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Détail de l'activité{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-3 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-history text-primary me-2"></i>Détail de l'activité
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'users:activity_log' %}" class="btn btn-custom-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Retour au journal
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card custom-card">
+            <div class="card-header card-header-custom">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Informations sur l'activité
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6>Utilisateur</h6>
+                        {% if log.user %}
+                        <div class="d-flex align-items-center">
+                            {% if log.user.profile_picture %}
+                            <img src="{{ log.user.profile_picture.url }}" alt="{{ log.user.get_full_name }}" 
+                                 class="rounded-circle me-3" width="48" height="48">
+                            {% else %}
+                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" 
+                                 style="width: 48px; height: 48px;">
+                                <i class="fas fa-user text-muted"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <h5 class="mb-0">{{ log.user.get_full_name }}</h5>
+                                <p class="text-muted mb-0">{{ log.user.email }}</p>
+                                <span class="badge bg-primary">{{ log.user.get_role_display }}</span>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">Système</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>Statut</h6>
+                        {% if log.is_success %}
+                        <span class="badge bg-success">
+                            <i class="fas fa-check-circle me-1"></i>Succès
+                        </span>
+                        {% else %}
+                        <span class="badge bg-danger">
+                            <i class="fas fa-times-circle me-1"></i>Échec
+                        </span>
+                        {% endif %}
+                        
+                        {% if log.duration %}
+                        <div class="mt-2">
+                            <h6>Durée d'exécution</h6>
+                            <p class="mb-0">{{ log.duration }} secondes</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <h6>Type d'action</h6>
+                        <span class="badge 
+                            {% if log.action_type == 'login' %}bg-success
+                            {% elif log.action_type == 'logout' %}bg-secondary
+                            {% elif log.action_type == 'create' %}bg-primary
+                            {% elif log.action_type == 'update' %}bg-warning
+                            {% elif log.action_type == 'delete' %}bg-danger
+                            {% else %}bg-info{% endif %}">
+                            {{ log.get_action_type_display }}
+                        </span>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <h6>Module</h6>
+                        <span class="badge bg-secondary">
+                            {{ log.get_module_display }}
+                        </span>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <h6>Date et heure</h6>
+                        <p class="mb-0">
+                            {{ log.created_at|date:"d/m/Y" }}<br>
+                            <small class="text-muted">{{ log.created_at|date:"H:i:s" }}</small>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h6>Description</h6>
+                    <div class="bg-light p-3 rounded">
+                        {{ log.description }}
+                    </div>
+                </div>
+                
+                {% if log.object_repr %}
+                <div class="mb-4">
+                    <h6>Objet concerné</h6>
+                    <div class="bg-light p-3 rounded">
+                        {{ log.object_repr }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if log.ip_address %}
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6>Adresse IP</h6>
+                        <code>{{ log.ip_address }}</code>
+                    </div>
+                    
+                    {% if log.user_agent %}
+                    <div class="col-md-6">
+                        <h6>User Agent</h6>
+                        <small class="text-muted">{{ log.user_agent|truncatechars:100 }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Données avant/après modification -->
+                {% if log.old_data or log.new_data %}
+                <div class="mb-4">
+                    <h6>Données de modification</h6>
+                    
+                    <div class="row">
+                        {% if log.old_data %}
+                        <div class="col-md-6">
+                            <h6 class="text-danger">Anciennes valeurs</h6>
+                            <div class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto;">
+                                <pre class="mb-0 small">{{ log.old_data }}</pre>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if log.new_data %}
+                        <div class="col-md-6">
+                            <h6 class="text-success">Nouvelles valeurs</h6>
+                            <div class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto;">
+                                <pre class="mb-0 small">{{ log.new_data }}</pre>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if log.error_message and not log.is_success %}
+                <div class="alert alert-danger alert-custom">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="alert-heading">Message d'erreur</h6>
+                            <p class="mb-0">{{ log.error_message }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Fonction pour formater le JSON de manière lisible
+    function formatJson(jsonString) {
+        try {
+            const jsonObj = JSON.parse(jsonString);
+            return JSON.stringify(jsonObj, null, 2);
+        } catch (e) {
+            return jsonString;
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Formater les JSON dans la page
+        const jsonPreElements = document.querySelectorAll('pre');
+        jsonPreElements.forEach(pre => {
+            const content = pre.textContent;
+            if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
+                pre.textContent = formatJson(content);
+            }
+        });
+    });
+</script>
+{% endblock %}
