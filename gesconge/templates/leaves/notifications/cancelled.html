@@ -1,0 +1,35 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <h2>{% trans "Demande de congé annulée" %}</h2>
+    
+    <p>{% blocktrans with user_name=user.get_full_name|default:user.username %}Bonjour {{ user_name }},{% endblocktrans %}</p>
+    
+    <p>{% trans "Nous vous informons que votre demande de congé a été <strong>annulée</strong>." %}</p>
+    
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+        <h3>{% trans "Détails" %}</h3>
+        <p><strong>{% trans "Type de congé:" %}</strong> {{ leave_request.leave_type.name }}</p>
+        <p><strong>{% trans "Période:" %}</strong> {{ leave_request.start_date|date:"d/m/Y" }} au {{ leave_request.end_date|date:"d/m/Y" }}</p>
+        <p><strong>{% trans "Statut:" %}</strong> <span style="color: #6c757d;">{% trans "Annulé" %}</span></p>
+        <p><strong>{% trans "Date d'annulation:" %}</strong> {{ leave_request.cancelled_at|date:"d/m/Y H:i" }}</p>
+    </div>
+    
+    <p>{% trans "Si cette annulation est une erreur, veuillez contacter votre responsable." %}</p>
+    
+    <a href="{{ site_url }}{% url 'leaves:leave_list' %}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+        {% trans "Voir mes congés" %}
+    </a>
+    
+    <hr>
+    
+    <p style="color: #666; font-size: 12px;">
+        {% trans "Ceci est un message automatique. Merci de ne pas y répondre." %}
+    </p>
+</body>
+</html>

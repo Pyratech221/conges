@@ -10,10 +10,16 @@
     
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <!-- FullCalendar CSS principal -->
+
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+
+<!-- Datatables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
     <!-- CSS Personnalisé -->
     <style>
         :root {
@@ -30,10 +36,30 @@
             --info-color: #17a2b8;
         }
         
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-        }
+        
+
+        html, body {
+    zoom: 1 !important;
+    -moz-transform: scale(1) !important;
+    -moz-transform-origin: 0 0 !important;
+    -webkit-text-size-adjust: 100% !important;
+    -moz-text-size-adjust: 100% !important;
+    -ms-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+}
+
+body {
+    transform: scale(1) !important;
+    transform-origin: top left !important;
+}
+
+/* Empêcher tout zoom hérité */
+* {
+    max-zoom: 1 !important;
+    min-zoom: 1 !important;
+}
         
         /* Navigation */
         .navbar-custom {
@@ -366,10 +392,10 @@
             display: flex;
             align-items: center;
             padding: 10px 15px;
-            background-color: white;
+            background-color: var(--primary-color);
             border: 1px solid var(--medium-gray);
             border-radius: 8px;
-            color: var(--dark-gray);
+            color: white;
             text-decoration: none;
             transition: all 0.3s ease;
             flex: 1;
@@ -443,33 +469,13 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <!-- Menu principal -->
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'leaves:dashboard' %}">
-                            <i class="fas fa-home me-1"></i>Accueil
-                        </a>
-                    </li>
+                    
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'leaves:calendar' %}">
                             <i class="fas fa-calendar-alt me-1"></i>Calendrier
                         </a>
                     </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-chart-bar me-1"></i>Rapports
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'leaves:report_list' %}">
-                                <i class="fas fa-list me-2"></i>Tous les rapports
-                            </a></li>
-                            <li><a class="dropdown-item" href="{% url 'leaves:quick_report' %}">
-                                <i class="fas fa-bolt me-2"></i>Rapport rapide
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'leaves:report_create' %}">
-                                <i class="fas fa-plus me-2"></i>Nouveau rapport
-                            </a></li>
-                        </ul>
-                    </li>
+                    
                     
                     {% if user.is_hr or user.is_admin %}
                     <li class="nav-item dropdown">
@@ -477,6 +483,12 @@
                             <i class="fas fa-cogs me-1"></i>Administration
                         </a>
                         <ul class="dropdown-menu">
+                            <li class="nav-item">
+                                <a class="dropdown-item"
+                                   href="{% url 'users:organization_structure' %}">
+                                    <i class="fas fa-sitemap"></i> Organisation
+                                </a>
+                            </li>
                             <li><a class="dropdown-item" href="{% url 'leaves:leavetype_list' %}">
                                 <i class="fas fa-tags me-2"></i>Types de congés
                             </a></li>
@@ -492,6 +504,32 @@
                             </a></li>
                         </ul>
                     </li>
+
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-folder me-1"></i>Rapports
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'leaves:report_list' %}">
+                                <i class="fas fa-tags me-2"></i>Tous les rapports
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'leaves:quick_report' %}">
+                                <i class="fas fa-calendar-day me-2"></i>Rapport rapide
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'leaves:report_create' %}">
+                                <i class="fas fa-upload me-2"></i>Nouveau rapport
+                            </a></li>
+                        </ul>
+                    </li>
+
+
+
+
+
+
+
                     {% endif %}
                 </ul>
                 
@@ -597,8 +635,7 @@
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li class="dropdown-header">
                                 <div class="text-center">
-                                    <div class="fw-bold">{{ user.get_full_name }}</div>
-                                    <small class="text-muted">{{ user.position|default:"Employé" }}</small>
+                                    <div style="color: white;" class="fw-bold">{{ user.position|default:"Employé" }}</div>
                                 </div>
                             </li>
                             <li><hr class="dropdown-divider"></li>
@@ -654,24 +691,8 @@
                                     <i class="fas fa-list"></i>Mes Demandes
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'leave_create' %}active{% endif %}" 
-                                   href="{% url 'leaves:leave_create' %}">
-                                    <i class="fas fa-plus-circle"></i>Nouvelle Demande
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'calendar' %}active{% endif %}" 
-                                   href="{% url 'leaves:calendar' %}">
-                                    <i class="fas fa-calendar-alt"></i>Calendrier
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'balance' %}active{% endif %}" 
-                                   href="{% url 'leaves:balance' %}">
-                                    <i class="fas fa-coins"></i>Mon Solde
-                                </a>
-                            </li>
+                            
+                            
                         </ul>
                     </div>
                     
@@ -702,71 +723,12 @@
                         </ul>
                     </div>
                     {% endif %}
-                    
-                    <!-- Section Rapports -->
-                    <div class="sidebar-section">
-                        <div class="sidebar-title">
-                            <i class="fas fa-chart-bar me-1"></i> Rapports
-                        </div>
-                        <ul class="nav flex-column">
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'report_list' %}active{% endif %}" 
-                                   href="{% url 'leaves:report_list' %}">
-                                    <i class="fas fa-file-alt"></i>Tous les rapports
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'quick_report' %}active{% endif %}" 
-                                   href="{% url 'leaves:quick_report' %}">
-                                    <i class="fas fa-bolt"></i>Rapport rapide
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and request.resolver_match.url_name == 'report_create' %}active{% endif %}" 
-                                   href="{% url 'leaves:report_create' %}">
-                                    <i class="fas fa-plus"></i>Nouveau rapport
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    
-                    <!-- Section Administration (visible pour RH/Admin) -->
                     {% if user.is_hr or user.is_admin %}
-                    <div class="sidebar-section">
-                        <div class="sidebar-title">
-                            <i class="fas fa-cogs me-1"></i> Administration
-                        </div>
-                        <ul class="nav flex-column">
-                            <!-- Gestion des congés -->
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and 'leavetype' in request.resolver_match.url_name %}active{% endif %}" 
-                                   href="{% url 'leaves:leavetype_list' %}">
-                                    <i class="fas fa-tags"></i>Types de congés
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and 'holiday' in request.resolver_match.url_name %}active{% endif %}" 
-                                   href="{% url 'leaves:holiday_list' %}">
-                                    <i class="fas fa-calendar-day"></i>Jours fériés
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and 'balance_management' in request.resolver_match.url_name %}active{% endif %}" 
-                                   href="{% url 'leaves:balance_management' %}">
-                                    <i class="fas fa-coins"></i>Gestion des soldes
-                                </a>
-                            </li>
-                            
-                            <!-- Import/Export -->
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.app_name == 'leaves' and 'import_data' in request.resolver_match.url_name %}active{% endif %}" 
-                                   href="{% url 'leaves:import_data' %}">
-                                    <i class="fas fa-exchange-alt"></i>Import/Export
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                    <!-- Section Rapports -->
+                    
                     {% endif %}
+                    <!-- Section Administration (visible pour RH/Admin) -->
+
                     
                     <!-- Section Utilisateurs (visible pour RH/Admin) -->
                     {% if user.is_hr or user.is_admin %}
@@ -781,18 +743,8 @@
                                     <i class="fas fa-list"></i>Liste des employés
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.app_name == 'users' and 'user_create' in request.resolver_match.url_name %}active{% endif %}" 
-                                   href="{% url 'users:user_create' %}">
-                                    <i class="fas fa-user-plus"></i>Nouvel employé
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.app_name == 'users' and 'organization_structure' in request.resolver_match.url_name %}active{% endif %}" 
-                                   href="{% url 'users:organization_structure' %}">
-                                    <i class="fas fa-sitemap"></i>Structure organisationnelle
-                                </a>
-                            </li>
+                            
+                            
                         </ul>
                     </div>
                     {% endif %}
@@ -814,12 +766,7 @@
                             {% endif %}
                             
                             <!-- Profil utilisateur -->
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.app_name == 'users' and 'profile' in request.resolver_match.url_name %}active{% endif %}" 
-                                   href="{% url 'users:profile' %}">
-                                    <i class="fas fa-user-cog"></i>Mon Profil
-                                </a>
-                            </li>
+                            
                             
                             <!-- Journal d'activité (visible pour Admin) -->
                             {% if user.is_admin %}
@@ -873,14 +820,7 @@
             
             <main class="{% if user.is_authenticated %}col-lg-10 col-md-9{% else %}col-12{% endif %} ms-sm-auto px-4 py-3">
                 <!-- Breadcrumb -->
-                {% block breadcrumb %}
-                <nav aria-label="breadcrumb" class="breadcrumb-custom mb-4">
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{% url 'users:dashboard' %}">Accueil</a></li>
-                        {% block breadcrumb_items %}{% endblock %}
-                    </ol>
-                </nav>
-                {% endblock %}
+                
                 
                 <!-- Messages -->
                 {% if messages %}
@@ -963,7 +903,8 @@
     
     <!-- Conteneur pour les toasts -->
     <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
-    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -1097,16 +1038,7 @@
             });
         }
         
-        // Actualiser les notifications automatiquement
-        function refreshNotifications() {
-            ajaxRequest('/leaves/api/notification-count/')
-                .then(data => {
-                    if (data.unread_count > 0) {
-                        updateNotificationBadge(data.unread_count);
-                    }
-                })
-                .catch(error => console.error('Error refreshing notifications:', error));
-        }
+        
         
         // Mettre à jour le badge de notification
         function updateNotificationBadge(count) {
@@ -1117,13 +1049,66 @@
             }
         }
         
-        // Actualiser toutes les 30 secondes
-        setInterval(refreshNotifications, 30000);
-        
-        // Initialiser au chargement
-        refreshNotifications();
+       
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <!-- 4. DataTables (dépend de jQuery) -->
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    
+
     
     {% block extra_js %}{% endblock %}
 </body>
+<!-- Ajoutez ceci juste avant </body> dans base.html -->
+<script>
+    // CORRECTION DU ZOOM - À EXÉCUTER SUR TOUTES LES PAGES
+    (function() {
+        // Attendre que le DOM soit chargé
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', fixZoom);
+        } else {
+            fixZoom();
+        }
+        
+        function fixZoom() {
+            // 1. Réinitialiser le zoom
+            document.body.style.zoom = "1";
+            document.documentElement.style.zoom = "1";
+            
+            // 2. Réinitialiser les transformations
+            document.body.style.transform = "scale(1)";
+            document.body.style.transformOrigin = "top left";
+            
+            // 3. Forcer le viewport
+            let viewport = document.querySelector('meta[name="viewport"]');
+            if (!viewport) {
+                viewport = document.createElement('meta');
+                viewport.name = 'viewport';
+                document.head.appendChild(viewport);
+            }
+            viewport.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
+            
+            // 4. Empêcher le zoom au double-tap (mobile)
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(event) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, { passive: false });
+            
+            // 5. S'assurer que la taille de police est normale
+            document.body.style.fontSize = "14px";
+            
+            console.log('Zoom corrigé');
+        }
+        
+        // Exécuter aussi après chaque navigation (pour SPA-like)
+        window.addEventListener('popstate', fixZoom);
+        window.addEventListener('load', fixZoom);
+    })();
+</script>
 </html>

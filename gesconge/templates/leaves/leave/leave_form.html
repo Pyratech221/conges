@@ -9,7 +9,26 @@
     <div class="col-lg-8">
         <form method="post" enctype="multipart/form-data" class="form-section">
             {% csrf_token %}
-            
+                        <!-- AJOUTER CETTE SECTION POUR AFFICHER LES ERREURS -->
+            {% if form.errors %}
+            <div class="alert alert-danger">
+                <h6 class="alert-heading">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Erreurs de validation
+                </h6>
+                <ul class="mb-0">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <li><strong>{{ field|title }}:</strong> {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% if form.non_field_errors %}
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+            </div>
+            {% endif %}
             <h5 class="form-section-title mb-4">
                 <i class="fas fa-info-circle me-2"></i>Informations Générales
             </h5>

@@ -357,6 +357,7 @@ class ReportForm(forms.ModelForm):
         model = Report
         fields = ['report_type', 'name', 'description', 'start_date', 'end_date',
                  'departments', 'services', 'users', 'leave_types', 'output_format']
+        # Note: 'company' n'est pas dans les champs car il sera défini automatiquement
         widgets = {
             'report_type': forms.Select(attrs={'class': 'form-select'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -385,7 +386,20 @@ class ReportForm(forms.ModelForm):
         first_day = date(today.year, today.month, 1)
         self.fields['start_date'].initial = first_day
         self.fields['end_date'].initial = today
-
+    
+    def save(self, commit=True):
+        """Override save pour ajouter automatiquement la company"""
+        instance = super().save(commit=False)
+        
+        if self.company:
+            instance.company = self.company
+        
+        if commit:
+            instance.save()
+            # Sauvegarder les relations ManyToMany
+            self.save_m2m()
+        
+        return instance
 
 class QuickReportForm(forms.Form):
     """Formulaire de rapport rapide"""
@@ -426,7 +440,6 @@ class QuickReportForm(forms.Form):
         choices=[
             ('pdf', 'PDF'),
             ('excel', 'Excel'),
-            ('html', 'HTML'),
         ],
         initial='pdf',
         widget=forms.Select(attrs={'class': 'form-select'})

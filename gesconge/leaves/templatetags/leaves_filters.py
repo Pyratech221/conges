@@ -246,3 +246,101 @@ def first_list(value):
         return value[0]
     except (IndexError, TypeError):
         return None    
+
+
+@register.filter
+def filter_status(queryset, status):
+    return queryset.filter(status=status)    
+
+
+@register.filter
+def times(number):
+    """Retourne une liste de 0 à number-1 (similaire à range)"""
+    return range(number)
+
+@register.filter
+def add(value, arg):
+    """Addition"""
+    try:
+        return value + arg
+    except:
+        return value
+
+@register.filter
+def divisibleby(value, arg):
+    """Vérifie si value est divisible par arg"""
+    try:
+        return value % arg == 0
+    except:
+        return False
+    
+@register.filter
+def days_range(start, end):
+    """Retourne une liste de jours de start à end"""
+    return range(start, end + 1)    
+
+@register.filter
+def date_weekday(date_str):
+    """Retourne le jour de la semaine (0=Dimanche, 1=Lundi, ... 6=Samedi)"""
+    try:
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+        return date_obj.weekday()  # 0=Lundi, 6=Dimanche dans Python
+    except:
+        return 0
+
+@register.filter
+def stringformat(value, format_str):
+    """Format une chaîne"""
+    return format_str % value
+
+@register.filter
+def modulo(value, arg):
+    """Retourne le modulo"""
+    return value % arg
+
+@register.filter
+def minus(value, arg):
+    """Soustraction"""
+    return value - arg
+
+
+@register.filter
+def first_day_offset(month, year):
+    """Calcule le décalage pour le premier jour du mois (0=Lundi)"""
+    try:
+        import calendar
+        # weekday() retourne 0=Lundi, 6=Dimanche
+        first_weekday = calendar.weekday(int(year), int(month), 1)
+        return first_weekday  # 0=Lundi, donc pas de décalage
+    except:
+        return 0
+
+
+
+@register.filter
+def first_weekday(month, year):
+    """Retourne le jour de la semaine du 1er du mois (0=Lundi)"""
+    try:
+        import calendar
+        # weekday() retourne 0=Lundi, 1=Mardi, ..., 6=Dimanche
+        return calendar.weekday(int(year), int(month), 1)
+    except:
+        return 0    
+
+
+
+@register.filter
+def pad_month(month):
+    """Ajoute un zéro devant le mois si nécessaire (1 → '01')"""
+    try:
+        return f"{int(month):02d}"
+    except:
+        return str(month).zfill(2)
+
+@register.filter
+def pad_day(day):
+    """Ajoute un zéro devant le jour si nécessaire (1 → '01')"""
+    try:
+        return f"{int(day):02d}"
+    except:
+        return str(day).zfill(2)    

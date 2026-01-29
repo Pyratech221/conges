@@ -560,8 +560,18 @@ function getCookie(name) {
 }
 
 // Initialiser DataTables
+// Initialiser DataTables avec une vérification
 $(document).ready(function() {
-    $('.datatable').DataTable({
+    // Vérifier si DataTables est déjà initialisé
+    var table = $('.datatable').DataTable();
+    
+    // Si la table existe déjà, la détruire avant de la réinitialiser
+    if ($.fn.DataTable.isDataTable('.datatable')) {
+        table.destroy();
+    }
+    
+    // Réinitialiser DataTables
+    $('.datatable').dataTable({
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
         },

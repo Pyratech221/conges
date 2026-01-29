@@ -285,7 +285,7 @@
 <script>
 function regenerateReport(reportId) {
     if (confirm('Regénérer ce rapport ?\n\nLe rapport existant sera remplacé.')) {
-        fetch(`/leaves/api/reports/${reportId}/regenerate/`, {
+        fetch(`${reportId}/download/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': getCookie('csrftoken'),

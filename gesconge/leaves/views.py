@@ -387,6 +387,8 @@ def leave_cancel_view(request, pk):
 @login_required
 def approval_list_view(request):
     """Liste des demandes à valider"""
+    from django.utils import timezone
+    
     if not request.user.is_approver and not request.user.is_manager:
         messages.error(request, _("Vous n'avez pas les permissions de validation."))
         return redirect('users:dashboard')
@@ -430,10 +432,10 @@ def approval_list_view(request):
     context = {
         'page_obj': page_obj,
         'total_pending': len(approvals),
+        'now': timezone.now(),  # AJOUTER CETTE LIGNE
     }
     
     return render(request, 'leaves/approval/approval_list.html', context)
-
 
 @login_required
 def approval_action_view(request, pk):
@@ -541,6 +543,8 @@ def approval_action_view(request, pk):
     return render(request, 'leaves/approval/approval_action.html', context)
 
 
+from django.utils import timezone
+
 @manager_or_above_required
 def bulk_approval_view(request):
     """Validation en masse"""
@@ -617,6 +621,7 @@ def bulk_approval_view(request):
         'form': form,
         'available_requests': available_requests,
         'total_pending': total_pending,
+        'now': timezone.now(),  # Ajoutez cette ligne
     }
     
     return render(request, 'leaves/approval/bulk_approval.html', context)
@@ -630,7 +635,9 @@ def calendar_view(request):
         user=request.user
     )
     
+    # CORRECTION : Filtrer via user__company
     leaves = LeaveRequest.objects.filter(
+        user__company=request.user.company,  # CORRIGÉ
         status='approved'
     ).select_related('user', 'leave_type')
     
@@ -645,7 +652,8 @@ def calendar_view(request):
             # Filtrer pour n'afficher que l'équipe
             team_users = User.objects.filter(
                 Q(service__manager=request.user) | 
-                Q(department__manager=request.user)
+                Q(department__manager=request.user),
+                company=request.user.company  # Ajouter cette condition
             ).distinct()
             leaves = leaves.filter(user__in=team_users)
     
@@ -672,50 +680,129 @@ def calendar_view(request):
     }
     
     return render(request, 'leaves/calendar/calendar.html', context)
-
-
 @login_required
 def calendar_events_json(request):
     """API JSON pour les événements du calendrier"""
-    start = request.GET.get('start')
-    end = request.GET.get('end')
-    
-    leaves = LeaveRequest.objects.filter(
-        status='approved',
-        start_date__lte=end,
-        end_date__gte=start
-    ).select_related('user', 'leave_type')
-    
-    # Appliquer les filtres
-    department_id = request.GET.get('department')
-    service_id = request.GET.get('service')
-    leave_type_id = request.GET.get('leave_type')
-    
-    if department_id:
-        leaves = leaves.filter(user__department_id=department_id)
-    if service_id:
-        leaves = leaves.filter(user__service_id=service_id)
-    if leave_type_id:
-        leaves = leaves.filter(leave_type_id=leave_type_id)
-    
-    events = []
-    for leave in leaves:
-        events.append({
-            'id': leave.id,
-            'title': f"{leave.user.get_full_name()} - {leave.leave_type.name}",
-            'start': leave.start_date.isoformat(),
-            'end': (leave.end_date + timedelta(days=1)).isoformat(),
-            'color': leave.leave_type.color,
-            'textColor': '#ffffff',
-            'extendedProps': {
-                'user': leave.user.get_full_name(),
-                'type': leave.leave_type.name,
-                'status': leave.get_status_display(),
+    try:
+        # Récupérer les paramètres de date
+        start_str = request.GET.get('start')
+        end_str = request.GET.get('end')
+        
+        if not start_str or not end_str:
+            return JsonResponse([], safe=False)
+        
+        # Convertir les dates (gérer le format ISO)
+        try:
+            # Nettoyer les chaînes de date
+            start_str = start_str.replace('Z', '+00:00')
+            end_str = end_str.replace('Z', '+00:00')
+            
+            start_date = datetime.fromisoformat(start_str)
+            end_date = datetime.fromisoformat(end_str)
+        except ValueError:
+            # Fallback si le format est différent
+            start_date = datetime.strptime(start_str.split('T')[0], '%Y-%m-%d')
+            end_date = datetime.strptime(end_str.split('T')[0], '%Y-%m-%d')
+        
+        print(f"API Calendrier: {start_date} à {end_date}")  # Pour débogage
+        
+        # CORRECTION : Filtrer via l'utilisateur qui appartient à la company
+        leaves = LeaveRequest.objects.filter(
+            user__company=request.user.company,  # CORRIGÉ : user__company au lieu de company
+            status='approved'
+        ).select_related('user', 'leave_type', 'user__department', 'user__service')
+        
+        # Appliquer les filtres de date CORRIGÉS
+        leaves = leaves.filter(
+            start_date__lt=end_date.date(),  # Commence avant la fin de la période
+            end_date__gte=start_date.date()   # Se termine après le début de la période
+        )
+        
+        # Appliquer les autres filtres
+        department_id = request.GET.get('department')
+        service_id = request.GET.get('service')
+        leave_type_id = request.GET.get('leave_type')
+        show_only_team = request.GET.get('show_only_team') == 'on'
+        view_type = request.GET.get('view_type')
+        
+        print(f"Filtres: department={department_id}, service={service_id}, leave_type={leave_type_id}")  # Pour débogage
+        
+        if department_id and department_id != '':
+            leaves = leaves.filter(user__department_id=department_id)
+        
+        if service_id and service_id != '':
+            leaves = leaves.filter(user__service_id=service_id)
+        
+        if leave_type_id and leave_type_id != '':
+            leaves = leaves.filter(leave_type_id=leave_type_id)
+        
+        if show_only_team and request.user.is_manager:
+            # Filtrer pour n'afficher que l'équipe
+            team_users = User.objects.filter(
+                Q(service__manager=request.user) | 
+                Q(department__manager=request.user),
+                company=request.user.company  # Ajouter cette condition
+            ).distinct()
+            leaves = leaves.filter(user__in=team_users)
+        
+        # Limiter pour les tests
+        # leaves = leaves[:50]  # Décommenter pour tester avec moins de données
+        
+        print(f"Nombre de congés trouvés: {leaves.count()}")  # Pour débogage
+        
+        # Construire les événements
+        events = []
+        for leave in leaves:
+            try:
+                events.append({
+                    'id': leave.id,
+                    'title': f"{leave.user.get_full_name()}",
+                    'start': leave.start_date.isoformat(),
+                    'end': (leave.end_date + timedelta(days=1)).isoformat(),  # +1 pour inclusion
+                    'color': leave.leave_type.color,
+                    'textColor': '#ffffff',
+                    'extendedProps': {
+                        'user': leave.user.get_full_name(),
+                        'type': leave.leave_type.name,
+                        'status': leave.get_status_display(),
+                        'department': leave.user.department.name if leave.user.department else '',
+                        'service': leave.user.service.name if leave.user.service else ''
+                    }
+                })
+            except Exception as e:
+                print(f"Erreur avec le congé {leave.id}: {e}")
+                continue
+        
+        print(f"Événements générés: {len(events)}")  # Pour débogage
+        
+        return JsonResponse(events, safe=False)
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"ERREUR dans calendar_events_json: {str(e)}")
+        print(error_details)
+        
+        # Retourner un événement de test en cas d'erreur
+        test_events = [
+            {
+                'id': 999,
+                'title': 'Test - Erreur API',
+                'start': datetime.now().isoformat(),
+                'end': (datetime.now() + timedelta(days=1)).isoformat(),
+                'color': '#dc3545',
+                'textColor': '#ffffff',
+                'extendedProps': {
+                    'user': 'Système',
+                    'type': 'Erreur',
+                    'status': 'Erreur API',
+                    'department': '',
+                    'service': ''
+                }
             }
-        })
-    
-    return JsonResponse(events, safe=False)
-
+        ]
+        
+        return JsonResponse(test_events, safe=False)
 
 # ==================== Vues de Solde ====================
 from django.db.models import Sum
@@ -865,23 +952,21 @@ def balance_adjust_view(request, user_id):
                 action_type=ActivityLog.ActionType.UPDATE,
                 module=ActivityLog.Module.BALANCE,
                 description=f"Ajustement du solde de {user.get_full_name()} - {leave_type.name} ({year})",
-                details={
-                    'user': user.get_full_name(),
-                    'leave_type': leave_type.name,
-                    'year': year,
+                old_data={
+                    **old_data,
+                    'reason': reason,
                     'adjustment_type': adjustment_type,
                     'amount': float(amount),
-                    'reason': reason,
-                    'old_data': old_data,
-                    'new_data': {
-                        'entitled_days': float(balance.entitled_days),
-                        'used_days': float(balance.used_days),
-                        'carried_over_days': float(balance.carried_over_days),
-                    }
+                },
+                new_data={
+                    'entitled_days': float(balance.entitled_days),
+                    'used_days': float(balance.used_days),
+                    'carried_over_days': float(balance.carried_over_days),
                 },
                 content_object=balance,
                 request=request
             )
+
             
             messages.success(request, _("Solde ajusté avec succès !"))
             return redirect('leaves:balance_management')
@@ -1009,37 +1094,60 @@ def report_list_view(request):
 @hr_or_admin_required
 def report_create_view(request):
     """Création d'un rapport"""
+    if not request.user.company:
+        messages.error(request, _("Aucune entreprise associée à votre compte."))
+        return redirect('leaves:report_list')
+    
     if request.method == 'POST':
         form = ReportForm(request.POST, company=request.user.company)
+        
         if form.is_valid():
-            report = form.save(commit=False)
-            report.company = request.user.company
-            report.generated_by = request.user
-            
-            # Générer le rapport
-            report_data = generate_report_data(report)
-            file_content = generate_report_file(report_data, report.output_format)
-            
-            # Sauvegarder le fichier
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"report_{report.report_type}_{timestamp}.{report.output_format}"
-            
-            report.file.save(filename, file_content)
-            report.file_size = report.file.size
-            report.save()
-            
-            # Log de l'activité
-            ActivityLog.log_action(
-                user=request.user,
-                action_type=ActivityLog.ActionType.CREATE,
-                module=ActivityLog.Module.REPORTING,
-                description=f"Génération du rapport {report.name}",
-                content_object=report,
-                request=request
-            )
-            
-            messages.success(request, _("Rapport généré avec succès !"))
-            return redirect('leaves:report_list')
+            try:
+                # 1. Sauvegarder d'abord l'objet sans les relations ManyToMany
+                report = form.save(commit=False)
+                report.generated_by = request.user
+                report.save()  # SAUVEGARDER D'ABORD pour obtenir un ID
+                
+                # 2. Maintenant sauvegarder les relations ManyToMany
+                form.save_m2m()
+                
+                # 3. Ensuite générer le fichier si nécessaire
+                try:
+                    report_data = generate_report_data(report)
+                    file_content = generate_report_file(report_data, report.output_format)
+                    
+                    if file_content:
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                        filename = f"report_{report.report_type}_{timestamp}.{report.output_format}"
+                        
+                        from django.core.files.base import ContentFile
+                        report.file.save(filename, ContentFile(file_content))
+                        report.file_size = report.file.size if report.file else 0
+                        report.save()  # Resauvegarder avec le fichier
+                except Exception as e:
+                    print(f"Erreur lors de la génération du fichier: {e}")
+                    messages.warning(request, _("Rapport créé mais erreur lors de la génération du fichier."))
+                
+                # Log de l'activité
+                ActivityLog.log_action(
+                    user=request.user,
+                    action_type=ActivityLog.ActionType.CREATE,
+                    module=ActivityLog.Module.REPORTING,
+                    description=f"Génération du rapport {report.name}",
+                    content_object=report,
+                    request=request
+                )
+                
+                messages.success(request, _("Rapport généré avec succès !"))
+                return redirect('leaves:report_list')
+                
+            except Exception as e:
+                print(f"Erreur lors de la création du rapport: {e}")
+                messages.error(request, _(f"Erreur lors de la création du rapport: {str(e)}"))
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         form = ReportForm(company=request.user.company)
     
@@ -1048,7 +1156,6 @@ def report_create_view(request):
     }
     
     return render(request, 'leaves/reports/report_form.html', context)
-
 
 @hr_or_admin_required
 def quick_report_view(request):
@@ -1109,7 +1216,7 @@ def quick_report_view(request):
                 data = generate_attendance_summary(request.user.company, start_date, end_date)
             
             # Créer le fichier
-            filename = f"quick_report_{report_type}_{today.strftime('%Y%m%d')}.{output_format}"
+            filename = f"{report_type}_{today.strftime('%Y%m%d')}.{output_format}"
             
             if output_format == 'pdf':
                 response = generate_pdf_report(data, filename, report_type)
@@ -1207,6 +1314,12 @@ def leavetype_create_view(request):
         form = LeaveTypeForm(request.POST, company=request.user.company)
         if form.is_valid():
             leave_type = form.save(commit=False)
+            
+            # Vérification explicite de la présence de la compagnie
+            if not request.user.company:
+                messages.error(request, _("Aucune compagnie associée à votre compte."))
+                return redirect('leaves:leavetype_list')
+            
             leave_type.company = request.user.company
             leave_type.save()
             
@@ -1222,6 +1335,11 @@ def leavetype_create_view(request):
             
             messages.success(request, _("Type de congé créé avec succès !"))
             return redirect('leaves:leavetype_list')
+        else:
+            # Afficher les erreurs de validation
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         form = LeaveTypeForm(company=request.user.company)
     

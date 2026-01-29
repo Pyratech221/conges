@@ -207,6 +207,10 @@
 
 {% block leaves_extra_js %}
 <script>
+// Fonction pour initialiser DataTables
+// Fonction pour initialiser DataTables
+
+
 document.addEventListener('DOMContentLoaded', function() {
     // Graphique des catégories
     const categoryData = {};
@@ -241,13 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Initialiser DataTables
-    $('.datatable').DataTable({
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
-        },
-        pageLength: 25,
-        order: [[0, 'asc']]
-    });
+    initializeDataTable();
     
     // Confirmation avant suppression
     $('.confirm-delete').on('click', function(e) {

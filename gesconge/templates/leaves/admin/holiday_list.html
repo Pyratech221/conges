@@ -4,6 +4,9 @@
 {% block page_title %}Jours Fériés{% endblock %}
 {% block page_subtitle %}Gérez les jours fériés de l'entreprise{% endblock %}
 
+
+
+
 {% block action_buttons %}
 <button type="button" class="btn btn-custom-primary" data-bs-toggle="modal" data-bs-target="#importHolidaysModal">
     <i class="fas fa-upload me-2"></i>Importer
@@ -13,8 +16,30 @@
 </a>
 {% endblock %}
 
+
+
 {% block leaves_content %}
 <!-- Filtres par année -->
+
+
+<style>
+    /* Dans votre feuille de style CSS */
+.holiday-calendar .card {
+    min-height: 300px;
+}
+
+.holiday-calendar .card-body {
+    padding: 5px !important;
+}
+
+.holiday-calendar .col {
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+}
+</style>
 <div class="row mb-4">
     <div class="col-12">
         <div class="form-section">
@@ -47,6 +72,7 @@
 </div>
 
 <!-- Calendrier des jours fériés -->
+<!-- Calendrier des jours fériés - Version corrigée -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="custom-card">
@@ -58,7 +84,7 @@
             <div class="card-body">
                 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4" id="holidayCalendar">
                     {% for month in months %}
-                    <div class="col">
+                    <div class="col holiday-calendar">
                         <div class="card h-100">
                             <div class="card-header bg-light text-center">
                                 <strong>
@@ -66,52 +92,70 @@
                                 </strong>
                             </div>
                             <div class="card-body p-2">
-                                <div class="row row-cols-7 g-1">
-                                    <!-- En-têtes des jours -->
-                                    <div class="col text-center"><small>L</small></div>
-                                    <div class="col text-center"><small>M</small></div>
-                                    <div class="col text-center"><small>M</small></div>
-                                    <div class="col text-center"><small>J</small></div>
-                                    <div class="col text-center"><small>V</small></div>
-                                    <div class="col text-center"><small>S</small></div>
-                                    <div class="col text-center"><small>D</small></div>
-                                    
-                                    <!-- Jours du mois -->
-                                    {% with month_holidays=holidays|filter_date_month:month %}
-                                    {% with first_day=selected_year|concat:"-"|concat:month|concat:"-01"|date:"w" %}
-                                    {% with days_in_month=month|days_in_month:selected_year %}
-                                    
-                                    <!-- Jours vides au début -->
-                                    {% for i in 0|range_list:first_day %}
-                                    <div class="col"></div>
-                                    {% endfor %}
-                                    
-                                    <!-- Jours du mois -->
-                                    {% for day in 1|range_inclusive:days_in_month %}
-                                    {% with current_date=selected_year|concat:"-"|concat:month|concat:"-"|concat:day %}
-                                    <div class="col text-center">
-                                        <small>
-                                            {% with holiday=month_holidays|filter_date:current_date|first_list %}
-                                            {% if holiday %}
-                                            <span class="badge bg-danger" 
-                                                  data-bs-toggle="tooltip" 
-                                                  title="{{ holiday.name }}"
-                                                  style="cursor: pointer;">
-                                                {{ day }}
-                                            </span>
-                                            {% else %}
-                                            {{ day }}
-                                            {% endif %}
-                                            {% endwith %}
-                                        </small>
-                                    </div>
-                                    {% endwith %}
-                                    {% endfor %}
-                                    
-                                    {% endwith %}
-                                    {% endwith %}
-                                    {% endwith %}
+                                <!-- En-têtes des jours de la semaine -->
+                                <div class="row row-cols-7 g-1 text-center fw-bold border-bottom pb-1 mb-1">
+                                    <div class="col">L</div>
+                                    <div class="col">M</div>
+                                    <div class="col">M</div>
+                                    <div class="col">J</div>
+                                    <div class="col">V</div>
+                                    <div class="col">S</div>
+                                    <div class="col">D</div>
                                 </div>
+
+                                <!-- Grille des jours du mois -->
+                                <!-- Version simplifiée sans stringformat -->
+<div class="calendar-grid">
+    {% with month_holidays=holidays|filter_date_month:month %}
+    {% with days_in_month=month|days_in_month:selected_year %}
+    {% with first_weekday=month|first_weekday:selected_year %}
+    
+    <div class="row row-cols-7 g-1">
+        <!-- Jours vides au début -->
+        {% for i in first_weekday|times %}
+        <div class="col"></div>
+        {% endfor %}
+        
+        <!-- Jours du mois -->
+        {% for day in 1|days_range:days_in_month %}
+        <div class="col text-center">
+            <small>
+                <!-- Création de la date formatée manuellement -->
+                {% with month_padded=month|pad_month %}
+                {% with day_padded=day|pad_day %}
+                {% with current_date=selected_year|concat:"-"|concat:month_padded|concat:"-"|concat:day_padded %}
+                {% with holiday=month_holidays|filter_date:current_date|first_list %}
+                {% if holiday %}
+                <span class="badge bg-danger" 
+                      data-bs-toggle="tooltip" 
+                      title="{{ holiday.name }}"
+                      style="cursor: pointer; font-size: 0.7rem; padding: 2px 4px;">
+                    {{ day }}
+                </span>
+                {% else %}
+                {{ day }}
+                {% endif %}
+                {% endwith %}
+                {% endwith %}
+                {% endwith %}
+                {% endwith %}
+            </small>
+        </div>
+        
+        <!-- Nouvelle ligne après 7 jours -->
+        {% with cell_position=forloop.counter|add:first_weekday %}
+        {% if cell_position|divisibleby:7 and not forloop.last %}
+    </div>
+    <div class="row row-cols-7 g-1">
+        {% endif %}
+        {% endwith %}
+        {% endfor %}
+    </div>
+    
+    {% endwith %}
+    {% endwith %}
+    {% endwith %}
+</div>
                             </div>
                         </div>
                     </div>

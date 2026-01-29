@@ -16,6 +16,7 @@ class Company(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    
     # Configuration des congés
     leave_year_start_month = models.PositiveIntegerField(
         _("Mois de début d'année de congés"),
@@ -387,6 +388,7 @@ class ActivityLog(models.Model):
         LEAVE_MANAGEMENT = 'leave_management', _('Gestion congés')
         APPROVAL = 'approval', _('Validation')
         ATTENDANCE = 'attendance', _('Présence')
+        BALANCE='balance', _('Solde des congés')
         REPORTING = 'reporting', _('Rapports')
         PROFILE = 'profile', _('Profil')
         SETTINGS = 'settings', _('Paramètres')

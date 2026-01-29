@@ -1,84 +1,814 @@
-{% extends 'base.html' %}
 {% load static %}
-
-{% block title %}Connexion{% endblock %}
-
-{% block content %}
-<div class="container">
-    <div class="row justify-content-center mt-5">
-        <div class="col-md-6 col-lg-4">
-            <div class="card custom-card">
-                <div class="card-header card-header-custom text-center">
-                    <h4 class="mb-0"><i class="fas fa-sign-in-alt me-2"></i>Connexion</h4>
+<!DOCTYPE html>
+<html lang="fr" class="login-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Connexion - Gestion Conges</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Lottie -->
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    
+    <style>
+        /* RÉINITIALISATION COMPLÈTE POUR LOGIN */
+        html.login-html, html.login-html body {
+            zoom: 1 !important;
+            -moz-transform: scale(1) !important;
+            -moz-transform-origin: 0 0 !important;
+            -webkit-text-size-adjust: 100% !important;
+            -moz-text-size-adjust: 100% !important;
+            -ms-text-size-adjust: 100% !important;
+            text-size-adjust: 100% !important;
+            font-size: 14px !important;
+            line-height: 1.5 !important;
+        }
+        
+        .login-html, .login-html * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            max-zoom: 1 !important;
+            min-zoom: 1 !important;
+        }
+        
+        .login-html body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background-image: url("{% static 'img/Background.png' %}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: #f5f7fa;
+            transform: scale(1) !important;
+            transform-origin: top left !important;
+            overflow-x: hidden;
+        }
+        
+        /* Variables */
+        :root {
+            --primary-color: #17537A;
+            --primary-hover: #2c7daa;
+            --danger-color: #dc3545;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+        }
+        
+        /* Conteneur principal */
+        .login-container {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            width: 100%;
+            max-width: 1024px;
+            max-height: 95vh;
+            overflow: hidden;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        
+        /* Partie gauche */
+        .login-left {
+            flex: 0 0 50%;
+            max-width: 50%;
+            background-color: var(--gray-50);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        
+        /* Partie droite */
+        .login-right {
+            flex: 0 0 50%;
+            max-width: 50%;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Responsive */
+        @media (max-width: 991px) {
+            .login-left {
+                display: none;
+            }
+            
+            .login-right {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+        }
+        
+        .form-wrapper {
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .login-card {
+            border: 1px solid var(--gray-200);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            background-color: white;
+        }
+        
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo {
+            height: 5rem;
+            width: auto;
+            transition: transform 0.3s;
+        }
+        
+        .logo:hover {
+            transform: scale(1.05);
+        }
+        
+        .login-title {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .login-title h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .login-title p {
+            color: var(--gray-600);
+            font-size: 0.875rem;
+        }
+        
+        .alert-custom {
+            border-radius: 0.5rem;
+            border-width: 1px;
+            padding: 0.75rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-success-custom {
+            background-color: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #166534;
+        }
+        
+        .alert-danger-custom {
+            background-color: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+        
+        .alert-icon {
+            margin-right: 0.5rem;
+            margin-top: 0.125rem;
+            flex-shrink: 0;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 0.25rem;
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        
+        .input-icon {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0.75rem;
+            display: flex;
+            align-items: center;
+            pointer-events: none;
+        }
+        
+        .form-control-custom {
+            width: 100%;
+            padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+            font-size: 0.875rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+        
+        .form-control-custom:focus {
+            outline: none;
+            border-color: transparent;
+            box-shadow: 0 0 0 2px var(--primary-color);
+            background-color: white;
+        }
+        
+        .form-control-error {
+            border-color: var(--danger-color);
+            background-color: #fef2f2;
+        }
+        
+        .form-control-error:focus {
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.5);
+        }
+        
+        .error-icon {
+            color: #f87171;
+        }
+        
+        .error-text {
+            margin-top: 0.25rem;
+            font-size: 0.75rem;
+            color: var(--danger-color);
+            display: flex;
+            align-items: center;
+        }
+        
+        .error-icon-small {
+            margin-right: 0.25rem;
+        }
+        
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 1rem;
+        }
+        
+        .forgot-password-link {
+            font-size: 0.875rem;
+            color: var(--primary-color);
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        .forgot-password-link:hover {
+            color: var(--primary-hover);
+        }
+        
+        .btn-login {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            border: none;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            min-width: 140px;
+            margin: 0 auto;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .btn-login:hover {
+            background-color: var(--primary-hover);
+            transform: scale(1.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-login:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-login:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--primary-color), 0 0 0 4px rgba(23, 83, 122, 0.2);
+        }
+        
+        .btn-icon {
+            margin-right: 0.5rem;
+        }
+        
+        .spinner {
+            animation: spin 1s linear infinite;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: white;
+            width: 1rem;
+            height: 1rem;
+            margin-right: 0.5rem;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .info-box {
+            margin-top: 2rem;
+            padding: 0.75rem;
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 0.5rem;
+        }
+        
+        .info-text {
+            font-size: 0.75rem;
+            color: #1e40af;
+            text-align: center;
+        }
+        
+        .footer {
+            text-align: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--gray-200);
+            margin-top: 1.5rem;
+        }
+        
+        .footer-text {
+            font-size: 0.75rem;
+            color: var(--gray-600);
+        }
+        
+        .footer-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        .footer-link:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+        
+        .animation-container {
+            text-align: center;
+            width: 100%;
+            padding: 1rem;
+        }
+        
+        .animation-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-top: 1.5rem;
+        }
+        
+        .animation-subtext {
+            color: var(--gray-600);
+            margin-top: 0.5rem;
+            font-size: 1rem;
+        }
+        
+        .remember-me {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .remember-checkbox {
+            margin-right: 0.5rem;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid var(--gray-300);
+            border-radius: 0.25rem;
+            cursor: pointer;
+        }
+        
+        .remember-checkbox:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .remember-label {
+            font-size: 0.875rem;
+            color: var(--gray-700);
+            cursor: pointer;
+        }
+        
+        .user-icon {
+            color: var(--gray-400);
+        }
+        
+        .user-icon.error {
+            color: #f87171;
+        }
+        
+        /* Animation Lottie */
+        #lottie-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 320px;
+        }
+        
+        /* Styles pour les messages cachés */
+        [style*="display: none"] {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <!-- Partie gauche - Animation -->
+        <div class="login-left">
+            <div class="animation-container">
+                <div id="lottie-container">
+                    <lottie-player
+                        id="lottie-animation"
+                        src="{% static 'img/ForgotPassword.json' %}"
+                        background="transparent"
+                        speed="1"
+                        style="width: 320px; height: 320px;"
+                        loop
+                        autoplay>
+                    </lottie-player>
                 </div>
-                <div class="card-body p-4">
-                    <form method="post" novalidate>
+                <h3 class="animation-text">Bienvenue sur Gestion congés</h3>
+                <p class="animation-subtext">Système d'Information et Ressources Humaines</p>
+            </div>
+        </div>
+        
+        <!-- Partie droite - Formulaire -->
+        <div class="login-right">
+            <div class="form-wrapper">
+                <div class="login-card">
+                    <!-- Logo -->
+                    <div class="logo-container">
+                        <img src="{% static 'img/logo_sihr.png' %}" alt="Logo SIRH" class="logo" 
+                             onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiByeD0iMTIiIGZpbGw9IiMxNzUzN0EiLz4KPHRleHQgeD0iNjAiIHk9IjY1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNGRkZGRkUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiPlNJUkggR1RQPC90ZXh0Pgo8L3N2Zz4=';">
+                    </div>
+                    
+                    <!-- Titre -->
+                    <div class="login-title">
+                        <h1>Connexion à votre compte</h1>
+                        <p>Entrez vos identifiants pour accéder à votre espace</p>
+                    </div>
+                    
+                    <!-- Messages -->
+                    <div id="successMessage" class="alert-custom alert-success-custom">
+                        <i class="fas fa-check-circle alert-icon"></i>
+                        <div id="successText"></div>
+                    </div>
+                    
+                    <div id="errorMessage" class="alert-custom alert-danger-custom">
+                        <i class="fas fa-exclamation-circle alert-icon"></i>
+                        <div>
+                            <div id="errorText" style="font-weight: 500;"></div>
+                            <div id="errorSubtext" style="margin-top: 0.25rem; font-size: 0.75rem;"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Formulaire -->
+                    <form id="loginForm" method="post" novalidate>
                         {% csrf_token %}
                         
-                        <div class="mb-3">
-                            <label for="id_username" class="form-label">Nom d'utilisateur ou Email</label>
-                            {{ form.username }}
-                            {% if form.username.errors %}
-                            <div class="text-danger">{{ form.username.errors }}</div>
-                            {% endif %}
+                        <!-- Champ username/email -->
+                        <div class="form-group">
+                            <label for="username" class="form-label">Nom d'utilisateur ou Email</label>
+                            <div class="input-group">
+                                <div class="input-icon">
+                                    <i id="usernameIcon" class="fas fa-user user-icon"></i>
+                                </div>
+                                <input
+                                    type="text"
+                                    id="username"
+                                    name="username"
+                                    class="form-control-custom"
+                                    placeholder="nom d'utilisateur ou email"
+                                    autocomplete="username"
+                                    required
+                                />
+                            </div>
+                            <div id="usernameError" class="error-text">
+                                <i class="fas fa-exclamation-circle error-icon-small"></i>
+                                <span id="usernameErrorText"></span>
+                            </div>
                         </div>
                         
-                        <div class="mb-3">
-                            <label for="id_password" class="form-label">Mot de passe</label>
-                            {{ form.password }}
-                            {% if form.password.errors %}
-                            <div class="text-danger">{{ form.password.errors }}</div>
-                            {% endif %}
+                        <!-- Champ mot de passe -->
+                        <div class="form-group">
+                            <label for="password" class="form-label">Mot de passe</label>
+                            <div class="input-group">
+                                <div class="input-icon">
+                                    <i id="passwordIcon" class="fas fa-lock user-icon"></i>
+                                </div>
+                                <input
+                                    type="password"
+                                    id="password"
+                                    name="password"
+                                    class="form-control-custom"
+                                    placeholder="Votre mot de passe"
+                                    autocomplete="current-password"
+                                    required
+                                />
+                            </div>
+                            <div id="passwordError" class="error-text">
+                                <i class="fas fa-exclamation-circle error-icon-small"></i>
+                                <span id="passwordErrorText"></span>
+                            </div>
                         </div>
                         
-                        <div class="mb-3 form-check">
-                            {{ form.remember_me }}
-                            <label class="form-check-label" for="id_remember_me">Se souvenir de moi</label>
+                        <!-- Se souvenir de moi -->
+                        <div class="remember-me">
+                            <input type="checkbox" id="remember_me" name="remember_me" class="remember-checkbox">
+                            <label for="remember_me" class="remember-label">Se souvenir de moi</label>
                         </div>
                         
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-custom-primary">
-                                <i class="fas fa-sign-in-alt me-2"></i>Se connecter
+                        <!-- Mot de passe oublié -->
+                        <div class="forgot-password">
+                            <a href="{% url 'users:password_reset' %}" class="forgot-password-link">Mot de passe oublié ?</a>
+                        </div>
+                        
+                        <!-- Bouton de connexion -->
+                        <div style="padding-top: 0.5rem;">
+                            <button type="submit" id="loginButton" class="btn-login">
+                                <span id="buttonText">
+                                    <i class="fas fa-sign-in-alt btn-icon"></i>
+                                    Se connecter
+                                </span>
+                                <span id="buttonLoading">
+                                    <div class="spinner"></div>
+                                    Connexion...
+                                </span>
                             </button>
                         </div>
                     </form>
                     
-                    <hr class="my-4">
+                    <!-- Info -->
+                    <div class="info-box">
+                        <p class="info-text">
+                            <strong>Info :</strong> Utilisez vos identifiants SIRH
+                        </p>
+                    </div>
                     
-                    <div class="text-center">
-                        <p class="mb-2">
-                            <a href="{% url 'users:password_reset' %}" class="text-decoration-none">
-                                <i class="fas fa-key me-1"></i>Mot de passe oublié ?
-                            </a>
+                    <!-- Footer -->
+                    <div class="footer">
+                        <p class="footer-text">
+                            Version 1.0.0 • 
+                            <a href="https://pyramide-tech.com/" target="_blank" class="footer-link">Pyramide Technologies ©</a>
                         </p>
-                        {% if not user.is_authenticated %}
-                        <p class="mb-0 text-muted">
-                            Application de gestion des congés et absences
-                        </p>
-                        {% endif %}
                     </div>
                 </div>
             </div>
-            
-            <div class="text-center mt-3">
-                {% if form.non_field_errors %}
-                <div class="alert alert-danger alert-custom">
-                    {{ form.non_field_errors }}
-                </div>
-                {% endif %}
-            </div>
         </div>
     </div>
-</div>
-{% endblock %}
 
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Ajouter les classes Bootstrap aux champs du formulaire
-        document.getElementById('id_username').className = 'form-control';
-        document.getElementById('id_password').className = 'form-control';
-        document.getElementById('id_remember_me').className = 'form-check-input';
-    });
-</script>
-{% endblock %}
+    <!-- Scripts JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // FORCER LE ZOOM À 100%
+            document.body.style.zoom = "1";
+            document.documentElement.style.zoom = "1";
+            
+            // Réinitialiser toutes les transformations
+            document.body.style.transform = "scale(1)";
+            document.body.style.transformOrigin = "top left";
+            
+            // Cacher les messages d'erreur par défaut
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('usernameError').style.display = 'none';
+            document.getElementById('passwordError').style.display = 'none';
+            document.getElementById('buttonLoading').style.display = 'none';
+            
+            const loginForm = document.getElementById('loginForm');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const loginButton = document.getElementById('loginButton');
+            const buttonText = document.getElementById('buttonText');
+            const buttonLoading = document.getElementById('buttonLoading');
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const usernameError = document.getElementById('usernameError');
+            const passwordError = document.getElementById('passwordError');
+            const usernameIcon = document.getElementById('usernameIcon');
+            const passwordIcon = document.getElementById('passwordIcon');
+            
+            // URL parameters
+            function getUrlParameter(name) {
+                name = name.replace(/[[]/, '\\[').replace(/[\]]/, '\\]');
+                const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+                const results = regex.exec(location.search);
+                return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+            }
+            
+            // Vérifier si l'utilisateur vient d'être déconnecté
+            const messageParam = getUrlParameter('message');
+            if (messageParam === 'deconnected') {
+                showSuccess('Vous avez été déconnecté avec succès.');
+                // Nettoyer l'URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            
+            // Vérifier si l'animation Lottie existe
+            const lottiePlayer = document.getElementById('lottie-animation');
+            if (lottiePlayer) {
+                lottiePlayer.addEventListener('error', function() {
+                    const container = document.getElementById('lottie-container');
+                    container.innerHTML = `
+                        <div style="width: 320px; height: 320px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%); border-radius: 1rem;">
+                            <i class="fas fa-user-lock fa-5x" style="color: #17537A;"></i>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Validation en temps réel
+            usernameInput.addEventListener('input', function() {
+                validateField('username');
+            });
+            
+            passwordInput.addEventListener('input', function() {
+                validateField('password');
+            });
+            
+            function validateField(fieldName) {
+                const field = fieldName === 'username' ? usernameInput : passwordInput;
+                const errorDiv = fieldName === 'username' ? usernameError : passwordError;
+                const icon = fieldName === 'username' ? usernameIcon : passwordIcon;
+                
+                if (field.value.trim() === '') {
+                    setFieldError(field, errorDiv, icon, 'Ce champ est obligatoire');
+                    return false;
+                }
+                
+                if (fieldName === 'username') {
+                    const value = field.value.trim();
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+                    
+                    if (!emailRegex.test(value) && !usernameRegex.test(value)) {
+                        setFieldError(field, errorDiv, icon, 'Veuillez entrer un nom d\'utilisateur ou un email valide');
+                        return false;
+                    }
+                }
+                
+                clearFieldError(field, errorDiv, icon);
+                return true;
+            }
+            
+            function setFieldError(field, errorDiv, icon, message) {
+                field.classList.add('form-control-error');
+                icon.classList.remove('user-icon');
+                icon.classList.add('error-icon');
+                errorDiv.style.display = 'flex';
+                errorDiv.querySelector('span').textContent = message;
+            }
+            
+            function clearFieldError(field, errorDiv, icon) {
+                field.classList.remove('form-control-error');
+                icon.classList.remove('error-icon');
+                icon.classList.add('user-icon');
+                errorDiv.style.display = 'none';
+            }
+            
+            function showSuccess(message) {
+                successMessage.style.display = 'flex';
+                document.getElementById('successText').textContent = message;
+                errorMessage.style.display = 'none';
+            }
+            
+            function showError(message, submessage = '') {
+                errorMessage.style.display = 'flex';
+                document.getElementById('errorText').textContent = message;
+                if (submessage) {
+                    document.getElementById('errorSubtext').textContent = submessage;
+                }
+                successMessage.style.display = 'none';
+            }
+            
+            function clearMessages() {
+                successMessage.style.display = 'none';
+                errorMessage.style.display = 'none';
+            }
+            
+            function startLoading() {
+                loginButton.disabled = true;
+                buttonText.style.display = 'none';
+                buttonLoading.style.display = 'flex';
+            }
+            
+            function stopLoading() {
+                loginButton.disabled = false;
+                buttonText.style.display = 'flex';
+                buttonLoading.style.display = 'none';
+            }
+            
+            // Soumission du formulaire
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                clearMessages();
+                
+                const isUsernameValid = validateField('username');
+                const isPasswordValid = validateField('password');
+                
+                if (!isUsernameValid || !isPasswordValid) {
+                    showError('Veuillez corriger les erreurs dans le formulaire', 'Tous les champs sont obligatoires');
+                    return;
+                }
+                
+                startLoading();
+                
+                try {
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    
+                    const formData = new FormData();
+                    formData.append('username', usernameInput.value.trim());
+                    formData.append('password', passwordInput.value.trim());
+                    formData.append('remember_me', document.getElementById('remember_me').checked);
+                    
+                    const response = await fetch('', {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            const data = await response.json();
+                            if (data.success) {
+                                showSuccess('Connexion réussie ! Redirection en cours...');
+                                setTimeout(() => {
+                                    window.location.href = data.redirect_url || '/';
+                                }, 1500);
+                            } else {
+                                handleDjangoErrors(data);
+                                stopLoading();
+                            }
+                        } else {
+                            showSuccess('Connexion réussie ! Redirection en cours...');
+                            setTimeout(() => {
+                                window.location.href = response.url || '/';
+                            }, 1500);
+                        }
+                    } else {
+                        if (response.status === 400) {
+                            const data = await response.json();
+                            handleDjangoErrors(data);
+                        } else if (response.status === 403) {
+                            showError('Accès refusé', 'Veuillez vérifier vos identifiants');
+                        } else {
+                            showError('Erreur de connexion', 'Veuillez réessayer plus tard');
+                        }
+                        stopLoading();
+                    }
+                    
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    loginForm.submit();
+                }
+            });
+            
+            function handleDjangoErrors(data) {
+                if (data.errors) {
+                    if (data.errors.username) {
+                        setFieldError(usernameInput, usernameError, usernameIcon, data.errors.username[0]);
+                    }
+                    if (data.errors.password) {
+                        setFieldError(passwordInput, passwordError, passwordIcon, data.errors.password[0]);
+                    }
+                    showError('Erreur de validation', 'Veuillez corriger les erreurs ci-dessus');
+                } else if (data.non_field_errors) {
+                    showError(data.non_field_errors[0]);
+                } else if (data.error) {
+                    showError(data.error);
+                } else {
+                    showError('Identifiants incorrects', 'Veuillez vérifier votre nom d\'utilisateur et mot de passe');
+                }
+            }
+            
+            // Initialisation
+            usernameIcon.classList.add('user-icon');
+            passwordIcon.classList.add('user-icon');
+        });
+    </script>
+</body>
+</html>

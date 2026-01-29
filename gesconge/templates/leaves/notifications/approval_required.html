@@ -1,0 +1,51 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <h2>{% trans "Validation de congé requise" %}</h2>
+    
+    <p>{% blocktrans with user_name=user.get_full_name|default:user.username %}Bonjour,{% endblocktrans %}</p>
+    
+    <p>{% blocktrans with user_name=user.get_full_name|default:user.username %}Vous avez une demande de congé en attente de validation de la part de <strong>{{ user_name }}</strong>.{% endblocktrans %}</p>
+    
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+        <h3>{% trans "Détails de la demande" %}</h3>
+        <p><strong>{% trans "Employé:" %}</strong> {{ user.get_full_name|default:user.username }}</p>
+        <p><strong>{% trans "Type de congé:" %}</strong> {{ leave_request.leave_type.name }}</p>
+        <p><strong>{% trans "Période:" %}</strong> {{ leave_request.start_date|date:"d/m/Y" }} au {{ leave_request.end_date|date:"d/m/Y" }}</p>
+        <p><strong>{% trans "Nombre de jours:" %}</strong> {{ leave_request.total_days }}</p>
+        <p><strong>{% trans "Date de soumission:" %}</strong> {{ leave_request.submitted_at|date:"d/m/Y H:i" }}</p>
+        
+        {% if leave_request.replacement %}
+        <p><strong>{% trans "Remplaçant:" %}</strong> {{ leave_request.replacement.get_full_name|default:leave_request.replacement.username }}</p>
+        {% endif %}
+    </div>
+    
+    <p><strong>{% trans "Délai de réponse:" %}</strong> {% trans "Veuillez répondre dans les meilleurs délais." %}</p>
+    
+    <div style="margin: 25px 0;">
+        <a href="{{ site_url }}{% url 'leaves:approval_detail' pk=leave_request.pk %}" style="background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-right: 10px;">
+            {% trans "Valider le congé" %}
+        </a>
+        <a href="{{ site_url }}{% url 'leaves:approval_detail' pk=leave_request.pk %}" style="background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            {% trans "Rejeter le congé" %}
+        </a>
+    </div>
+    
+    <p>{% trans "Vous pouvez également consulter toutes vos validations en attente." %}</p>
+    
+    <a href="{{ site_url }}{% url 'leaves:approval_list' %}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+        {% trans "Voir toutes les validations" %}
+    </a>
+    
+    <hr>
+    
+    <p style="color: #666; font-size: 12px;">
+        {% trans "Ceci est un message automatique. Merci de ne pas y répondre." %}
+    </p>
+</body>
+</html>

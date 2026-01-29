@@ -4,6 +4,7 @@ from django.shortcuts import redirect
 from functools import wraps
 from django.utils.translation import gettext_lazy as _
 from users.models import User
+from django.contrib import messages
 
 def hr_or_admin_required(view_func):
     """Décorateur pour les vues réservées aux RH et administrateurs"""
@@ -13,7 +14,8 @@ def hr_or_admin_required(view_func):
             return redirect('users:login')
         
         if not (request.user.is_hr or request.user.is_admin):
-            raise PermissionDenied(_("Vous n'avez pas les permissions nécessaires pour accéder à cette page."))
+            messages.error(request, _("Vous n'avez pas les permissions nécessaires pour accéder à cette page."))
+            return redirect('users:no_permission')  # Redirige vers une page HTML
         
         return view_func(request, *args, **kwargs)
     return _wrapped_view
@@ -27,7 +29,8 @@ def manager_or_above_required(view_func):
             return redirect('users:login')
         
         if not request.user.is_manager:
-            raise PermissionDenied(_("Vous n'avez pas les permissions de manager nécessaires pour accéder à cette page."))
+            messages.error(request, _("Vous n'avez pas les permissions de manager nécessaires pour accéder à cette page."))
+            return redirect('users:no_permission')
         
         return view_func(request, *args, **kwargs)
     return _wrapped_view
@@ -41,7 +44,8 @@ def raf_required(view_func):
             return redirect('users:login')
         
         if not request.user.is_raf:
-            raise PermissionDenied(_("Vous n'avez pas les permissions de responsable RAF nécessaires pour accéder à cette page."))
+            messages.error(request, _("Vous n'avez pas les permissions de responsable RAF nécessaires pour accéder à cette page."))
+            return redirect('users:no_permission')
         
         return view_func(request, *args, **kwargs)
     return _wrapped_view
@@ -55,7 +59,8 @@ def approver_required(view_func):
             return redirect('users:login')
         
         if not request.user.is_approver:
-            raise PermissionDenied(_("Vous n'avez pas les permissions de validation nécessaires pour accéder à cette page."))
+            messages.error(request, _("Vous n'avez pas les permissions de validation nécessaires pour accéder à cette page."))
+            return redirect('users:no_permission')
         
         return view_func(request, *args, **kwargs)
     return _wrapped_view
@@ -69,7 +74,8 @@ def company_member_required(view_func):
             return redirect('users:login')
         
         if not request.user.company:
-            raise PermissionDenied(_("Vous n'êtes affilié à aucune entreprise."))
+            messages.error(request, _("Vous n'êtes affilié à aucune entreprise."))
+            return redirect('users:no_permission')
         
         return view_func(request, *args, **kwargs)
     return _wrapped_view
@@ -98,7 +104,8 @@ def department_manager_required(view_func):
         if not (request.user.is_manager and 
                (request.user.managed_departments.exists() or 
                 request.user.service and request.user.service.manager == request.user)):
-            raise PermissionDenied(_("Vous n'avez pas les permissions de manager de département."))
+            messages.error(request, _("Vous n'avez pas les permissions de manager de département."))
+            return redirect('users:no_permission')
         
         return view_func(request, *args, **kwargs)
     return _wrapped_view
@@ -107,11 +114,6 @@ def department_manager_required(view_func):
 def check_object_permission(model_class, permission_field='user', permission_check=None):
     """
     Décorateur générique pour vérifier les permissions sur un objet
-    
-    Args:
-        model_class: Classe du modèle
-        permission_field: Champ à vérifier (par défaut 'user')
-        permission_check: Fonction personnalisée de vérification
     """
     def decorator(view_func):
         @wraps(view_func)
@@ -131,13 +133,15 @@ def check_object_permission(model_class, permission_field='user', permission_che
                         )
                     
                     if not has_permission:
-                        raise PermissionDenied(_("Vous n'avez pas la permission d'accéder à cet objet."))
+                        messages.error(request, _("Vous n'avez pas la permission d'accéder à cet objet."))
+                        return redirect('users:no_permission')
                     
                     # Ajouter l'objet au contexte de la requête
                     request.obj = obj
                     
                 except model_class.DoesNotExist:
-                    raise PermissionDenied(_("L'objet demandé n'existe pas."))
+                    messages.error(request, _("L'objet demandé n'existe pas."))
+                    return redirect('users:no_permission')
             
             return view_func(request, *args, **kwargs)
         return _wrapped_view

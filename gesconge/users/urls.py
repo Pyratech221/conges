@@ -8,6 +8,7 @@ urlpatterns = [
     # ==================== Authentification ====================
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('no-permission/', views.no_permission_view, name='no_permission'),
     
     # Réinitialisation de mot de passe
     path('password-reset/', 

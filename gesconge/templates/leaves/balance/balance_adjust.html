@@ -1,6 +1,7 @@
 {% extends "leaves/base_leaves.html" %}
 {% load crispy_forms_tags %}
-
+{% load humanize %}
+{% load leaves_filters %}
 {% block page_title %}Ajustement du Solde{% endblock %}
 {% block page_subtitle %}Ajustez le solde de congés de {{ user.get_full_name }}{% endblock %}
 
@@ -173,8 +174,9 @@
             </div>
             <div class="card-body">
                 {% with total_requests=user.leave_requests.count %}
-                {% with approved_requests=user.leave_requests.filter|status='approved'|length %}
-                {% with pending_requests=user.leave_requests.filter|status='pending'|length %}
+                {% with approved_requests=user.leave_requests|filter_status:"approved"|length %}
+{% with pending_requests=user.leave_requests|filter_status:"pending"|length %}
+
                 <div class="mb-3">
                     <div class="d-flex justify-content-between mb-1">
                         <span>Demandes totales</span>

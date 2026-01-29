@@ -108,7 +108,7 @@
                                     {% endif %}
                                     <li>
                                         <a class="dropdown-item" 
-                                           href="{% url 'leaves:delete_notification' notification.pk %}"
+                                           href=""
                                            onclick="return confirm('Supprimer cette notification ?')">
                                             <i class="fas fa-trash me-2"></i>Supprimer
                                         </a>
@@ -319,15 +319,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Auto-refresh des notifications (toutes les 30 secondes)
-    setInterval(function() {
-        fetch('/leaves/api/notification-count/')
-            .then(response => response.json())
-            .then(data => {
-                if (data.unread_count > 0) {
-                    updateNotificationBadge(data.unread_count);
-                }
-            });
-    }, 30000);
+    
     
     // Mettre à jour le badge de notification
     function updateNotificationBadge(count) {

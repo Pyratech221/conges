@@ -1,0 +1,36 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <h2>{% trans "Nouvelle demande de congé à valider" %}</h2>
+    
+    <p>{% trans "Bonjour," %}</p>
+    
+    <p>{% blocktrans with user_name=user.get_full_name|default:user.username %}Vous avez une nouvelle demande de congé de la part de <strong>{{ user_name }}</strong> à valider.{% endblocktrans %}</p>
+    
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+        <h3>{% trans "Détails de la demande" %}</h3>
+        <p><strong>{% trans "Employé:" %}</strong> {{ user.get_full_name|default:user.username }}</p>
+        <p><strong>{% trans "Type de congé:" %}</strong> {{ leave_request.leave_type.name }}</p>
+        <p><strong>{% trans "Période:" %}</strong> {{ leave_request.start_date|date:"d/m/Y" }} au {{ leave_request.end_date|date:"d/m/Y" }}</p>
+        <p><strong>{% trans "Nombre de jours:" %}</strong> {{ leave_request.total_days }}</p>
+        <p><strong>{% trans "Motif:" %}</strong> {{ leave_request.reason|truncatechars:100 }}</p>
+    </div>
+    
+    <p>{% trans "Pour valider ou rejeter cette demande, veuillez vous connecter au système de gestion des congés." %}</p>
+    
+    <a href="{{ site_url }}{% url 'leaves:approval_list' %}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+        {% trans "Accéder aux validations" %}
+    </a>
+    
+    <hr>
+    
+    <p style="color: #666; font-size: 12px;">
+        {% trans "Ceci est un message automatique. Merci de ne pas y répondre." %}
+    </p>
+</body>
+</html>

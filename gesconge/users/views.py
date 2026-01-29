@@ -849,3 +849,11 @@ def assign_group_ajax(request):
             return JsonResponse({'success': False, 'error': str(e)})
     
     return JsonResponse({'success': False})
+
+
+
+
+@login_required
+def no_permission_view(request):
+    """Vue pour afficher la page d'absence de permission"""
+    return render(request, 'leaves/no_permission.html')
