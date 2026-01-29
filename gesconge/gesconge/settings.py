@@ -91,21 +91,27 @@ WSGI_APPLICATION = 'gesconge.wsgi.application'
 #     }
 # }
 
-
-
 DATABASES = {
-        'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'gesconge',
-        'USER': 'postgres',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '5432',
-        'OPTIONS': {
-            'client_encoding': 'UTF8',
-        },
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+
+# DATABASES = {
+#         'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'gesconge',
+#         'USER': 'postgres',
+#         'PASSWORD': '',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#         'OPTIONS': {
+#             'client_encoding': 'UTF8',
+#         },
+#     }
+# }
 
 
 # Password validation
